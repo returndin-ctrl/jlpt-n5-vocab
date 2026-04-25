@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#4F46E5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="N5單字">
+<link rel="manifest" href="manifest.json">
+<title>JLPT N5 單字王</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --pri:#6366F1;--pri2:#4F46E5;--pri3:#3730A3;
+  --acc:#8B5CF6;--grn:#10B981;--red:#EF4444;--org:#F59E0B;--blu:#3B82F6;
+  --bg:#F5F3FF;--card:#FFFFFF;--txt:#111827;--sub:#6B7280;--bdr:#EDE9FE;
+  --shadow-sm:0 2px 8px rgba(99,102,241,.10);
+  --shadow:0 4px 20px rgba(99,102,241,.15);
+  --shadow-lg:0 8px 32px rgba(99,102,241,.20);
+}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif}
+body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:none}
+#app{max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.screen{display:none;padding:18px;min-height:100%}
+.screen.active{display:block}
+
+/* BOTTOM NAV */
+.bnav{display:flex;background:#fff;border-top:none;flex-shrink:0;
+  box-shadow:0 -4px 20px rgba(99,102,241,.10);border-radius:24px 24px 0 0;
+  padding:6px 8px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 4px;border:none;background:none;color:var(--sub);font-size:10px;
+  font-weight:500;cursor:pointer;transition:all .2s;border-radius:14px}
+.bnav-btn.active{color:var(--pri)}
+.bnav-btn.active svg{filter:drop-shadow(0 2px 4px rgba(99,102,241,.4))}
+.bnav-icon{width:40px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:10px;transition:all .2s}
+.bnav-btn.active .bnav-icon{background:var(--bdr)}
+.bnav-btn svg{width:20px;height:20px}
+
+/* CARDS */
+.card{background:var(--card);border-radius:18px;padding:18px;margin-bottom:14px;
+  box-shadow:var(--shadow-sm)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat-card{background:var(--card);border-radius:18px;padding:16px 14px;
+  box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:18px 18px 0 0}
+.stat-card.c-blue::before{background:var(--blu)}
+.stat-card.c-purple::before{background:var(--acc)}
+.stat-card.c-green::before{background:var(--grn)}
+.stat-card.c-orange::before{background:var(--org)}
+.stat-icon{font-size:22px;margin-bottom:8px}
+.stat-num{font-size:30px;font-weight:800;color:var(--txt);line-height:1}
+.stat-lbl{font-size:12px;color:var(--sub);margin-top:4px;font-weight:500}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:16px;border:none;border-radius:16px;font-size:16px;
+  font-weight:600;cursor:pointer;transition:transform .15s,box-shadow .15s;margin-bottom:10px}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.35)}
+.btn-pri:active{box-shadow:0 2px 8px rgba(99,102,241,.25)}
+.btn-sec{background:#fff;color:var(--pri);border:2px solid var(--bdr);box-shadow:var(--shadow-sm)}
+.btn-grn{background:linear-gradient(135deg,#10B981,#059669);color:#fff;box-shadow:0 4px 16px rgba(16,185,129,.3)}
+.btn-sml{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 16px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+
+/* HERO / STREAK */
+.streak-bar{background:linear-gradient(135deg,#6366F1 0%,#8B5CF6 50%,#A78BFA 100%);
+  border-radius:22px;padding:20px;margin-bottom:16px;color:#fff;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 6px 24px rgba(99,102,241,.35);position:relative;overflow:hidden}
+.streak-bar::after{content:'';position:absolute;top:-30px;right:-20px;
+  width:120px;height:120px;background:rgba(255,255,255,.08);border-radius:50%}
+.streak-left h2{font-size:24px;font-weight:800}
+.streak-left p{font-size:13px;opacity:.85;margin-top:3px}
+.streak-fire{font-size:54px;line-height:1;position:relative;z-index:1}
+
+/* PROGRESS BAR */
+.prog-wrap{background:#EDE9FE;border-radius:99px;height:10px;overflow:hidden;margin:10px 0}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--pri),var(--acc));
+  border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.prog-txt{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);font-weight:500}
+
+/* FLASHCARD */
+.fc-wrap{display:flex;flex-direction:column;height:100%;padding:0;background:var(--bg)}
+.fc-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  padding-top:max(14px,env(safe-area-inset-top));
+  background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;flex-shrink:0}
+.fc-hdr h2{font-size:16px;font-weight:700}
+.fc-close{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;
+  width:34px;height:34px;font-size:18px;cursor:pointer;line-height:34px;text-align:center;
+  backdrop-filter:blur(4px)}
+.fc-prog{height:3px;background:rgba(255,255,255,.25)}
+.fc-prog-fill{height:100%;background:#fff;transition:width .3s;border-radius:99px}
+.fc-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 20px}
+
+.flip-card{width:100%;max-width:380px;height:300px;perspective:1200px;cursor:pointer}
+.flip-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1)}
+.flip-inner.flipped{transform:rotateY(180deg)}
+.flip-front,.flip-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;border-radius:24px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:28px;box-shadow:var(--shadow-lg)}
+.flip-front{background:linear-gradient(145deg,#6366F1,#8B5CF6,#A78BFA);color:#fff}
+.flip-back{background:#fff;transform:rotateY(180deg);border:1px solid var(--bdr)}
+.fc-kanji{font-size:56px;font-weight:700;margin-bottom:10px;text-align:center;letter-spacing:2px}
+.fc-reading{font-size:22px;opacity:.9;text-align:center;font-weight:500}
+.fc-hint{font-size:12px;opacity:.55;margin-top:18px;letter-spacing:.5px}
+.fc-pos-badge{background:rgba(255,255,255,.22);border-radius:99px;padding:5px 14px;
+  font-size:12px;margin-bottom:14px;font-weight:600;backdrop-filter:blur(4px)}
+.back-kanji{font-size:30px;font-weight:700;color:var(--pri);margin-bottom:4px}
+.back-reading{font-size:16px;color:var(--sub);margin-bottom:14px}
+.back-meaning{font-size:28px;font-weight:800;color:var(--txt);text-align:center;margin-bottom:12px}
+.back-pos{font-size:12px;color:var(--sub);background:var(--bg);border-radius:99px;
+  padding:4px 12px;margin-bottom:12px;font-weight:500}
+.back-ex{font-size:13px;color:var(--sub);text-align:center;line-height:1.7;
+  border-top:1.5px solid var(--bdr);padding-top:12px;width:100%}
+
+.fc-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;padding:14px 16px;
+  padding-bottom:max(14px,env(safe-area-inset-bottom));background:#fff;
+  border-top:1px solid var(--bdr);flex-shrink:0}
+.rate-btn{padding:12px 4px;border:none;border-radius:14px;font-size:12px;font-weight:700;
+  cursor:pointer;transition:transform .15s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.rate-btn:active{transform:scale(.93)}
+.rate-btn .icon{font-size:20px}
+.rate-btn.r0{background:#FEE2E2;color:#DC2626}
+.rate-btn.r1{background:#FEF3C7;color:#D97706}
+.rate-btn.r2{background:#D1FAE5;color:#059669}
+.rate-btn.r3{background:#EFF6FF;color:#2563EB}
+.fc-done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px;text-align:center;background:var(--bg)}
+.fc-done h2{font-size:28px;font-weight:800;margin:16px 0 8px}
+.fc-done p{color:var(--sub);margin-bottom:24px}
+
+/* QUIZ */
+.qz-wrap{display:flex;flex-direction:column;height:100%;background:var(--bg)}
+.qz-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  padding-top:max(14px,env(safe-area-inset-top));
+  background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;flex-shrink:0}
+.qz-prog{height:3px;background:rgba(255,255,255,.25)}
+.qz-prog-fill{height:100%;background:#fff;transition:width .3s;border-radius:99px}
+.qz-body{flex:1;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.qz-question{background:linear-gradient(145deg,#6366F1,#8B5CF6);border-radius:22px;
+  padding:28px 22px;text-align:center;margin-bottom:20px;color:#fff;
+  box-shadow:0 6px 24px rgba(99,102,241,.30);position:relative;overflow:hidden}
+.qz-question::before{content:'';position:absolute;bottom:-20px;right:-20px;
+  width:100px;height:100px;background:rgba(255,255,255,.07);border-radius:50%}
+.qz-q-word{display:none}
+.qz-q-reading{font-size:46px;font-weight:800;margin-top:4px;letter-spacing:3px;text-shadow:0 2px 10px rgba(0,0,0,.15)}
+.qz-q-lbl{font-size:12px;opacity:.7;margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase}
+.qz-q-pos{font-size:12px;background:rgba(255,255,255,.2);border-radius:99px;
+  padding:4px 12px;display:inline-block;margin-top:12px;font-weight:600;
+  backdrop-filter:blur(4px)}
+.choice-btn{display:flex;align-items:center;gap:14px;width:100%;padding:15px 16px;
+  border:1.5px solid var(--bdr);border-radius:16px;background:#fff;font-size:15px;
+  font-weight:500;cursor:pointer;margin-bottom:10px;text-align:left;
+  transition:all .18s;color:var(--txt);box-shadow:var(--shadow-sm)}
+.choice-btn:active{transform:scale(.98);background:var(--bg)}
+.choice-label{width:30px;height:30px;border-radius:10px;
+  background:linear-gradient(135deg,var(--pri),var(--acc));
+  color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.choice-btn.correct{border-color:var(--grn);background:#ECFDF5;color:#065F46;box-shadow:0 4px 12px rgba(16,185,129,.2)}
+.choice-btn.correct .choice-label{background:var(--grn)}
+.choice-btn.wrong{border-color:var(--red);background:#FEF2F2;color:#991B1B;box-shadow:0 4px 12px rgba(239,68,68,.15)}
+.choice-btn.wrong .choice-label{background:var(--red)}
+.choice-btn.disabled{cursor:default;pointer-events:none}
+.qz-score{text-align:center;padding:30px 20px}
+.qz-score h2{font-size:28px;font-weight:800;margin:16px 0 8px}
+.score-circle{width:130px;height:130px;border-radius:50%;
+  background:linear-gradient(135deg,var(--pri),var(--acc));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  margin:0 auto 20px;box-shadow:0 6px 24px rgba(99,102,241,.3)}
+.score-num{font-size:34px;font-weight:800;color:#fff}
+.score-tot{font-size:13px;color:rgba(255,255,255,.8)}
+
+/* WORD LIST */
+.search-bar{position:relative;margin-bottom:14px}
+.search-bar input{width:100%;padding:13px 16px 13px 44px;border:1.5px solid var(--bdr);
+  border-radius:14px;font-size:15px;background:#fff;outline:none;color:var(--txt);
+  box-shadow:var(--shadow-sm)}
+.search-bar input:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:16px}
+.filter-tabs{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px}
+.filter-tabs::-webkit-scrollbar{display:none}
+.filter-tab{flex-shrink:0;padding:8px 16px;border-radius:99px;border:1.5px solid var(--bdr);
+  background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:var(--sub);
+  box-shadow:var(--shadow-sm)}
+.filter-tab.active{background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.word-item{background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:8px;
+  box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;cursor:pointer;
+  border:1px solid transparent;transition:border-color .2s}
+.word-item:active{opacity:.85;border-color:var(--bdr)}
+.word-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-new{background:#D1D5DB}
+.dot-learning{background:var(--org)}
+.dot-learned{background:var(--grn)}
+.word-main{flex:1;min-width:0}
+.word-kanji{font-size:18px;font-weight:700;color:var(--txt)}
+.word-reading{font-size:13px;color:var(--sub);margin-top:2px}
+.word-meaning{font-size:14px;color:var(--txt);font-weight:500;margin-top:2px}
+.word-pos{font-size:11px;color:var(--pri);background:var(--bdr);border-radius:99px;
+  padding:3px 10px;flex-shrink:0;font-weight:600}
+
+/* WORD DETAIL MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(17,24,39,.5);z-index:100;
+  display:none;align-items:flex-end;backdrop-filter:blur(2px)}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:28px 28px 0 0;width:100%;max-width:480px;margin:0 auto;
+  padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom));max-height:85vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;background:var(--bdr);border-radius:99px;margin:0 auto 18px}
+.modal-kanji{font-size:52px;font-weight:800;text-align:center;
+  background:linear-gradient(135deg,var(--pri),var(--acc));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.modal-reading{font-size:20px;text-align:center;color:var(--sub);margin-bottom:8px}
+.modal-meaning{font-size:24px;font-weight:800;text-align:center;margin-bottom:8px;color:var(--txt)}
+.modal-pos{text-align:center;margin-bottom:16px}
+.modal-ex{background:var(--bg);border-radius:14px;padding:16px;margin-bottom:16px;
+  border-left:3px solid var(--pri)}
+.modal-ex p{font-size:14px;line-height:1.75;color:var(--txt)}
+.modal-ex .ex-lbl{font-size:12px;color:var(--pri);margin-bottom:8px;font-weight:700;letter-spacing:.5px}
+.modal-progress{display:flex;gap:10px;margin-bottom:12px}
+.modal-progress .mp{flex:1;background:var(--bg);border-radius:12px;padding:12px;text-align:center}
+.modal-progress .mp-num{font-size:20px;font-weight:800;color:var(--pri)}
+.modal-progress .mp-lbl{font-size:11px;color:var(--sub);font-weight:500}
+
+/* STATS */
+.stats-hero{background:linear-gradient(145deg,#6366F1,#8B5CF6,#A78BFA);border-radius:22px;
+  padding:24px 20px;margin-bottom:16px;color:#fff;text-align:center;
+  box-shadow:0 6px 24px rgba(99,102,241,.3)}
+.stats-hero h2{font-size:42px;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.15)}
+.stats-hero p{opacity:.85;margin-top:6px;font-size:15px;font-weight:500}
+.status-legend{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.legend-row{display:flex;align-items:center;justify-content:space-between;
+  background:#fff;border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.legend-left{display:flex;align-items:center;gap:12px;font-weight:500}
+.legend-dot{width:12px;height:12px;border-radius:4px}
+
+/* SPEAK BUTTONS */
+.speak-fab{background:rgba(255,255,255,.22);border:none;color:#fff;border-radius:99px;
+  padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;margin-top:12px;
+  display:inline-flex;align-items:center;gap:7px;backdrop-filter:blur(4px);
+  transition:background .2s;letter-spacing:.3px}
+.speak-fab:active{background:rgba(255,255,255,.4);transform:scale(.96)}
+.speak-fab svg{width:16px;height:16px}
+.speak-fab.playing{background:rgba(255,255,255,.38)}
+.speak-ex-btn{background:var(--bg);border:1.5px solid var(--bdr);color:var(--pri);
+  border-radius:99px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;
+  margin-top:10px;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.speak-ex-btn:active{background:var(--bdr);transform:scale(.97)}
+.speak-ex-btn.hidden{display:none}
+.speak-modal-row{display:flex;gap:10px;justify-content:center;margin:10px 0 16px}
+.speak-modal-btn{background:var(--bg);border:1.5px solid var(--bdr);color:var(--pri);
+  border-radius:99px;padding:9px 20px;font-size:14px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;transition:all .2s}
+.speak-modal-btn:active{background:var(--bdr);transform:scale(.97)}
+.speak-modal-btn svg{width:16px;height:16px}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#111827;color:#fff;padding:11px 20px;border-radius:99px;font-size:14px;
+  font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:200;
+  white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ===== HOME ===== -->
+<div id="s-home" class="screen active" style="padding-bottom:80px">
+  <div class="streak-bar">
+    <div class="streak-left">
+      <h2 id="streak-num">🔥 0天</h2>
+      <p id="today-date"></p>
+    </div>
+    <div class="streak-fire">日</div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card c-blue">
+      <div class="stat-icon">📚</div>
+      <div class="stat-num" id="stat-due">0</div>
+      <div class="stat-lbl">待複習</div>
+    </div>
+    <div class="stat-card c-purple">
+      <div class="stat-icon">✨</div>
+      <div class="stat-num" id="stat-new">0</div>
+      <div class="stat-lbl">新單字</div>
+    </div>
+    <div class="stat-card c-green">
+      <div class="stat-icon">🏆</div>
+      <div class="stat-num" id="stat-learned">0</div>
+      <div class="stat-lbl">已掌握</div>
+    </div>
+    <div class="stat-card c-orange">
+      <div class="stat-icon">🎯</div>
+      <div class="stat-num" id="stat-acc">—</div>
+      <div class="stat-lbl">正確率</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="prog-txt"><span style="font-weight:600;color:var(--txt)">總進度</span><span id="prog-pct" style="font-weight:700;color:var(--pri)">0%</span></div>
+    <div class="prog-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
+    <div class="prog-txt" style="margin-top:6px"><span>已學習</span><span id="total-words">共 0 字</span></div>
+  </div>
+  <button class="btn btn-pri" onclick="startFlashcard('due')">📚 開始複習</button>
+  <button class="btn btn-sec" onclick="startFlashcard('new')">✨ 學新單字</button>
+  <button class="btn btn-grn" onclick="startQuiz()">🎯 選擇題測驗</button>
+</div>
+
+<!-- ===== FLASHCARD ===== -->
+<div id="s-flashcard" class="screen" style="padding:0;display:none;flex-direction:column;height:100%">
+  <div class="fc-hdr">
+    <button class="fc-close" onclick="exitStudy()">✕</button>
+    <h2 id="fc-title">閃卡複習</h2>
+    <span id="fc-counter" style="font-size:14px">0/0</span>
+  </div>
+  <div class="fc-prog"><div class="fc-prog-fill" id="fc-prog" style="width:0%"></div></div>
+  <div id="fc-session-body" style="flex:1;display:flex;flex-direction:column">
+    <div class="fc-body">
+      <div class="flip-card" id="flip-card" onclick="flipCard()">
+        <div class="flip-inner" id="flip-inner">
+          <div class="flip-front">
+            <div class="fc-pos-badge" id="fc-pos-front">名詞</div>
+            <div class="fc-kanji" id="fc-kanji">学校</div>
+            <div class="fc-reading" id="fc-reading">がっこう</div>
+            <button class="speak-fab" id="fc-speak-btn" onclick="event.stopPropagation();speakFC()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              聽發音
+            </button>
+            <div class="fc-hint" style="margin-top:10px">👆 點擊翻轉</div>
+          </div>
+          <div class="flip-back">
+            <div class="back-kanji" id="bc-kanji">学校</div>
+            <div class="back-reading" id="bc-reading">がっこう</div>
+            <div class="back-meaning" id="bc-meaning">學校</div>
+            <div class="back-pos" id="bc-pos">名詞</div>
+            <div class="back-ex" id="bc-ex"></div>
+            <button class="speak-ex-btn hidden" id="fc-speak-ex" onclick="event.stopPropagation();speakFCEx()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="15" height="15"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              聽例句
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-btns">
+      <button class="rate-btn r0" onclick="rateCard(0)"><span class="icon">😵</span>忘記</button>
+      <button class="rate-btn r1" onclick="rateCard(1)"><span class="icon">🤔</span>模糊</button>
+      <button class="rate-btn r2" onclick="rateCard(2)"><span class="icon">😊</span>記得</button>
+      <button class="rate-btn r3" onclick="rateCard(3)"><span class="icon">⚡</span>簡單</button>
+    </div>
+  </div>
+  <div class="fc-done" id="fc-done" style="display:none">
+    <div style="font-size:72px">🎉</div>
+    <h2 id="fc-done-title">複習完成！</h2>
+    <p id="fc-done-sub">今天表現很棒！</p>
+    <button class="btn btn-pri" style="margin-top:8px" onclick="exitStudy()">返回首頁</button>
+    <button class="btn btn-sec" onclick="startFlashcard('due')" style="margin-top:4px">繼續複習</button>
+  </div>
+</div>
+
+<!-- ===== QUIZ ===== -->
+<div id="s-quiz" class="screen" style="padding:0;display:none;flex-direction:column;height:100%">
+  <div class="qz-hdr">
+    <button class="fc-close" onclick="exitStudy()">✕</button>
+    <h2>選擇題測驗</h2>
+    <span id="qz-counter" style="font-size:14px">0/0</span>
+  </div>
+  <div class="qz-prog"><div class="qz-prog-fill" id="qz-prog" style="width:0%"></div></div>
+  <div id="qz-body" class="qz-body">
+    <div class="qz-question">
+      <div class="qz-q-lbl">下列哪個是正確的意思？</div>
+      <div class="qz-q-word" id="qz-word" style="display:none"></div>
+      <div class="qz-q-reading" id="qz-reading">がっこう</div>
+      <div class="qz-q-pos" id="qz-pos">名</div>
+      <button class="speak-fab" style="margin:12px auto 0;display:flex" onclick="speakQZ()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        聽發音
+      </button>
+    </div>
+    <div id="qz-choices"></div>
+  </div>
+  <div id="qz-score" class="qz-score" style="display:none">
+    <div class="score-circle">
+      <div class="score-num" id="score-pct">0%</div>
+      <div class="score-tot" id="score-frac">0/0</div>
+    </div>
+    <h2 id="score-msg">測驗結束！</h2>
+    <p id="score-sub" style="color:var(--sub);margin-bottom:20px"></p>
+    <button class="btn btn-pri" onclick="startQuiz()">再來一次</button>
+    <button class="btn btn-sec" onclick="exitStudy()">返回首頁</button>
+  </div>
+</div>
+
+<!-- ===== WORD LIST ===== -->
+<div id="s-words" class="screen" style="padding-bottom:80px;display:none">
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="search-input" placeholder="搜尋單字或意思..." oninput="renderWordList()">
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all" onclick="setFilter(this,'all')">全部</button>
+    <button class="filter-tab" data-filter="new" onclick="setFilter(this,'new')">未學</button>
+    <button class="filter-tab" data-filter="learning" onclick="setFilter(this,'learning')">學習中</button>
+    <button class="filter-tab" data-filter="learned" onclick="setFilter(this,'learned')">已掌握</button>
+    <button class="filter-tab" data-filter="名詞" onclick="setFilter(this,'名詞')">名詞</button>
+    <button class="filter-tab" data-filter="動詞" onclick="setFilter(this,'動詞')">動詞</button>
+    <button class="filter-tab" data-filter="形容詞" onclick="setFilter(this,'形容詞')">形容詞</button>
+    <button class="filter-tab" data-filter="副詞" onclick="setFilter(this,'副詞')">副詞</button>
+  </div>
+  <div id="word-list"></div>
+</div>
+
+<!-- ===== STATS ===== -->
+<div id="s-stats" class="screen" style="padding-bottom:80px;display:none">
+  <div class="stats-hero">
+    <h2 id="st-pct">0%</h2>
+    <p>整體進度</p>
+  </div>
+  <div class="status-legend">
+    <div class="legend-row">
+      <div class="legend-left"><div class="legend-dot" style="background:#9CA3AF"></div>未學習</div>
+      <strong id="st-new">0</strong>
+    </div>
+    <div class="legend-row">
+      <div class="legend-left"><div class="legend-dot" style="background:#D97706"></div>學習中</div>
+      <strong id="st-learning">0</strong>
+    </div>
+    <div class="legend-row">
+      <div class="legend-left"><div class="legend-dot" style="background:#059669"></div>已掌握</div>
+      <strong id="st-learned">0</strong>
+    </div>
+    <div class="legend-row">
+      <div class="legend-left"><div class="legend-dot" style="background:#4F46E5"></div>累計複習</div>
+      <strong id="st-reviews">0</strong>
+    </div>
+    <div class="legend-row">
+      <div class="legend-left"><div class="legend-dot" style="background:#DC2626"></div>正確率</div>
+      <strong id="st-acc">—</strong>
+    </div>
+  </div>
+  <button class="btn" style="background:#FEE2E2;color:#DC2626;font-weight:600" onclick="confirmReset()">🗑 重置所有進度</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav" id="bottom-nav">
+  <button class="bnav-btn active" id="nav-home" onclick="navigate('home')">
+    <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    首頁
+  </button>
+  <button class="bnav-btn" id="nav-flashcard" onclick="navigate('flashcard')">
+    <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="4" width="20" height="14" rx="3"/><path d="M8 20h8M12 18v2"/></svg></div>
+    閃卡
+  </button>
+  <button class="bnav-btn" id="nav-quiz" onclick="navigate('quiz')">
+    <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    測驗
+  </button>
+  <button class="bnav-btn" id="nav-words" onclick="navigate('words')">
+    <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+    單字
+  </button>
+  <button class="bnav-btn" id="nav-stats" onclick="navigate('stats')">
+    <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+    統計
+  </button>
+</nav>
+
+<!-- WORD DETAIL MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-handle"></div>
+    <div class="modal-kanji" id="m-kanji"></div>
+    <div class="modal-reading" id="m-reading"></div>
+    <div class="speak-modal-row">
+      <button class="speak-modal-btn" onclick="speakModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        聽單字
+      </button>
+      <button class="speak-modal-btn" id="m-speak-ex-btn" onclick="speakModalEx()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        聽例句
+      </button>
+    </div>
+    <div class="modal-meaning" id="m-meaning"></div>
+    <div class="modal-pos" id="m-pos"></div>
+    <div class="modal-ex" id="m-ex" style="display:none">
+      <div class="ex-lbl">例句</div>
+      <p id="m-ex-jp"></p>
+      <p id="m-ex-ch" style="color:var(--sub);font-size:13px;margin-top:4px"></p>
+    </div>
+    <div class="modal-progress">
+      <div class="mp"><div class="mp-num" id="m-status">未學</div><div class="mp-lbl">狀態</div></div>
+      <div class="mp"><div class="mp-num" id="m-reviews">0</div><div class="mp-lbl">複習次數</div></div>
+      <div class="mp"><div class="mp-num" id="m-interval">—</div><div class="mp-lbl">下次複習</div></div>
+    </div>
+    <button class="btn btn-pri" onclick="closeModalBtn()">關閉</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== WORD DATA =====================
+const WORDS = [
+  // ===== 数字・時間 =====
+  {id:1,k:"一",r:"いち",m:"一、1",p:"名詞",ex:"一日に三回食事します。",exm:"一天吃三餐。"},
+  {id:2,k:"二",r:"に",m:"二、2",p:"名詞",ex:"二人で行きます。",exm:"兩個人去。"},
+  {id:3,k:"三",r:"さん",m:"三、3",p:"名詞",ex:"三時に会いましょう。",exm:"三點見面吧。"},
+  {id:4,k:"四",r:"よん／し",m:"四、4",p:"名詞",ex:"四月から学校が始まります。",exm:"四月開始上學。"},
+  {id:5,k:"五",r:"ご",m:"五、5",p:"名詞",ex:"五分待ってください。",exm:"請等五分鐘。"},
+  {id:6,k:"六",r:"ろく",m:"六、6",p:"名詞",ex:"六時に起きます。",exm:"六點起床。"},
+  {id:7,k:"七",r:"なな／しち",m:"七、7",p:"名詞",ex:"一週間は七日です。",exm:"一週是七天。"},
+  {id:8,k:"八",r:"はち",m:"八、8",p:"名詞",ex:"八時に寝ます。",exm:"八點睡覺。"},
+  {id:9,k:"九",r:"きゅう／く",m:"九、9",p:"名詞",ex:"九月は涼しいです。",exm:"九月很涼爽。"},
+  {id:10,k:"十",r:"じゅう",m:"十、10",p:"名詞",ex:"十時に始まります。",exm:"十點開始。"},
+  {id:11,k:"百",r:"ひゃく",m:"百、100",p:"名詞",ex:"百円で買いました。",exm:"用一百日圓買的。"},
+  {id:12,k:"千",r:"せん",m:"千、1000",p:"名詞",ex:"千円札があります。",exm:"有一千日圓鈔票。"},
+  {id:13,k:"万",r:"まん",m:"萬、10000",p:"名詞",ex:"一万円かかりました。",exm:"花了一萬日圓。"},
+  {id:14,k:"ゼロ",r:"ゼロ",m:"零、0",p:"名詞",ex:"答えはゼロです。",exm:"答案是零。"},
+  {id:15,k:"時",r:"じ",m:"…點（鐘）",p:"名詞",ex:"今、三時です。",exm:"現在三點。"},
+  {id:16,k:"分",r:"ふん／ぷん",m:"…分",p:"名詞",ex:"あと十分待ちます。",exm:"再等十分鐘。"},
+  {id:17,k:"半",r:"はん",m:"…半",p:"名詞",ex:"二時半に来ます。",exm:"兩點半來。"},
+  {id:18,k:"時間",r:"じかん",m:"時間",p:"名詞",ex:"時間がありません。",exm:"沒有時間。"},
+  {id:19,k:"午前",r:"ごぜん",m:"上午",p:"名詞",ex:"午前九時に始まります。",exm:"上午九點開始。"},
+  {id:20,k:"午後",r:"ごご",m:"下午",p:"名詞",ex:"午後は授業がありません。",exm:"下午沒有課。"},
+  {id:21,k:"朝",r:"あさ",m:"早上",p:"名詞",ex:"朝ご飯を食べます。",exm:"吃早餐。"},
+  {id:22,k:"昼",r:"ひる",m:"中午、白天",p:"名詞",ex:"昼ご飯はパンです。",exm:"午餐吃麵包。"},
+  {id:23,k:"夜",r:"よる",m:"夜晚",p:"名詞",ex:"夜は静かです。",exm:"晚上很安靜。"},
+  {id:24,k:"晩",r:"ばん",m:"晚上",p:"名詞",ex:"晩ご飯は何ですか。",exm:"晚餐是什麼？"},
+  {id:25,k:"今",r:"いま",m:"現在",p:"名詞",ex:"今、忙しいです。",exm:"現在很忙。"},
+  {id:26,k:"今日",r:"きょう",m:"今天",p:"名詞",ex:"今日は晴れです。",exm:"今天是晴天。"},
+  {id:27,k:"昨日",r:"きのう",m:"昨天",p:"名詞",ex:"昨日は雨でした。",exm:"昨天下雨。"},
+  {id:28,k:"明日",r:"あした",m:"明天",p:"名詞",ex:"明日学校に行きます。",exm:"明天去學校。"},
+  {id:29,k:"毎日",r:"まいにち",m:"每天",p:"名詞",ex:"毎日日本語を勉強します。",exm:"每天學日語。"},
+  {id:30,k:"今週",r:"こんしゅう",m:"這週",p:"名詞",ex:"今週は忙しいです。",exm:"這週很忙。"},
+  {id:31,k:"先週",r:"せんしゅう",m:"上週",p:"名詞",ex:"先週、京都に行きました。",exm:"上週去了京都。"},
+  {id:32,k:"来週",r:"らいしゅう",m:"下週",p:"名詞",ex:"来週、試験があります。",exm:"下週有考試。"},
+  {id:33,k:"今月",r:"こんげつ",m:"這個月",p:"名詞",ex:"今月は四月です。",exm:"這個月是四月。"},
+  {id:34,k:"先月",r:"せんげつ",m:"上個月",p:"名詞",ex:"先月、引っ越しました。",exm:"上個月搬家了。"},
+  {id:35,k:"来月",r:"らいげつ",m:"下個月",p:"名詞",ex:"来月、旅行に行きます。",exm:"下個月去旅行。"},
+  {id:36,k:"今年",r:"ことし",m:"今年",p:"名詞",ex:"今年は2026年です。",exm:"今年是2026年。"},
+  {id:37,k:"去年",r:"きょねん",m:"去年",p:"名詞",ex:"去年、日本へ来ました。",exm:"去年來了日本。"},
+  {id:38,k:"来年",r:"らいねん",m:"明年",p:"名詞",ex:"来年、卒業します。",exm:"明年畢業。"},
+
+  // ===== 曜日 =====
+  {id:39,k:"月曜日",r:"げつようび",m:"星期一",p:"名詞",ex:"月曜日に会議があります。",exm:"星期一有會議。"},
+  {id:40,k:"火曜日",r:"かようび",m:"星期二",p:"名詞",ex:"火曜日は休みです。",exm:"星期二休息。"},
+  {id:41,k:"水曜日",r:"すいようび",m:"星期三",p:"名詞",ex:"水曜日に映画を見ます。",exm:"星期三看電影。"},
+  {id:42,k:"木曜日",r:"もくようび",m:"星期四",p:"名詞",ex:"木曜日に来てください。",exm:"請在星期四來。"},
+  {id:43,k:"金曜日",r:"きんようび",m:"星期五",p:"名詞",ex:"金曜日の夜は楽しいです。",exm:"星期五晚上很開心。"},
+  {id:44,k:"土曜日",r:"どようび",m:"星期六",p:"名詞",ex:"土曜日に買い物します。",exm:"星期六去購物。"},
+  {id:45,k:"日曜日",r:"にちようび",m:"星期日",p:"名詞",ex:"日曜日は家にいます。",exm:"星期日在家。"},
+  {id:46,k:"何曜日",r:"なんようび",m:"星期幾",p:"名詞",ex:"今日は何曜日ですか。",exm:"今天是星期幾？"},
+
+  // ===== 人・家族 =====
+  {id:47,k:"人",r:"ひと",m:"人",p:"名詞",ex:"あの人は誰ですか。",exm:"那個人是誰？"},
+  {id:48,k:"男",r:"おとこ",m:"男人",p:"名詞",ex:"男の人が立っています。",exm:"有個男人站著。"},
+  {id:49,k:"女",r:"おんな",m:"女人",p:"名詞",ex:"女の人が歌っています。",exm:"有個女人在唱歌。"},
+  {id:50,k:"子供",r:"こども",m:"小孩",p:"名詞",ex:"子供が遊んでいます。",exm:"小孩在玩耍。"},
+  {id:51,k:"大人",r:"おとな",m:"大人",p:"名詞",ex:"大人は千円です。",exm:"成人一千日圓。"},
+  {id:52,k:"家族",r:"かぞく",m:"家人",p:"名詞",ex:"家族は四人です。",exm:"家裡有四個人。"},
+  {id:53,k:"父",r:"ちち",m:"（自己的）父親",p:"名詞",ex:"父は会社員です。",exm:"我爸爸是上班族。"},
+  {id:54,k:"母",r:"はは",m:"（自己的）母親",p:"名詞",ex:"母は料理が上手です。",exm:"我媽媽很會做菜。"},
+  {id:55,k:"お父さん",r:"おとうさん",m:"父親（敬稱）",p:"名詞",ex:"お父さんはお元気ですか。",exm:"您父親好嗎？"},
+  {id:56,k:"お母さん",r:"おかあさん",m:"母親（敬稱）",p:"名詞",ex:"お母さんは優しいです。",exm:"媽媽很溫柔。"},
+  {id:57,k:"兄",r:"あに",m:"（自己的）哥哥",p:"名詞",ex:"兄は二十歳です。",exm:"哥哥二十歲。"},
+  {id:58,k:"姉",r:"あね",m:"（自己的）姊姊",p:"名詞",ex:"姉は看護師です。",exm:"姊姊是護士。"},
+  {id:59,k:"弟",r:"おとうと",m:"弟弟",p:"名詞",ex:"弟は中学生です。",exm:"弟弟是中學生。"},
+  {id:60,k:"妹",r:"いもうと",m:"妹妹",p:"名詞",ex:"妹は可愛いです。",exm:"妹妹很可愛。"},
+  {id:61,k:"お兄さん",r:"おにいさん",m:"哥哥（敬稱）",p:"名詞",ex:"お兄さんは何歳ですか。",exm:"你哥哥幾歲？"},
+  {id:62,k:"お姉さん",r:"おねえさん",m:"姊姊（敬稱）",p:"名詞",ex:"お姉さんはきれいです。",exm:"你姊姊很漂亮。"},
+  {id:63,k:"友達",r:"ともだち",m:"朋友",p:"名詞",ex:"友達と映画を見ました。",exm:"和朋友看了電影。"},
+  {id:64,k:"先生",r:"せんせい",m:"老師",p:"名詞",ex:"先生はとても親切です。",exm:"老師非常親切。"},
+  {id:65,k:"学生",r:"がくせい",m:"學生",p:"名詞",ex:"私は大学の学生です。",exm:"我是大學生。"},
+  {id:66,k:"留学生",r:"りゅうがくせい",m:"留學生",p:"名詞",ex:"留学生が増えました。",exm:"留學生增加了。"},
+
+  // ===== 場所 =====
+  {id:67,k:"学校",r:"がっこう",m:"學校",p:"名詞",ex:"学校まで歩いて行きます。",exm:"走路去學校。"},
+  {id:68,k:"家",r:"いえ",m:"家、房子",p:"名詞",ex:"家に帰ります。",exm:"回家。"},
+  {id:69,k:"うち",r:"うち",m:"家、自家",p:"名詞",ex:"うちは駅の近くです。",exm:"我家在車站附近。"},
+  {id:70,k:"部屋",r:"へや",m:"房間",p:"名詞",ex:"私の部屋は二階です。",exm:"我的房間在二樓。"},
+  {id:71,k:"会社",r:"かいしゃ",m:"公司",p:"名詞",ex:"会社まで一時間かかります。",exm:"到公司要一個小時。"},
+  {id:72,k:"駅",r:"えき",m:"車站",p:"名詞",ex:"駅で待っています。",exm:"在車站等。"},
+  {id:73,k:"店",r:"みせ",m:"店",p:"名詞",ex:"あの店は安いです。",exm:"那家店很便宜。"},
+  {id:74,k:"デパート",r:"デパート",m:"百貨公司",p:"名詞",ex:"デパートで買い物しました。",exm:"在百貨公司購物。"},
+  {id:75,k:"銀行",r:"ぎんこう",m:"銀行",p:"名詞",ex:"銀行は九時に開きます。",exm:"銀行九點開門。"},
+  {id:76,k:"病院",r:"びょういん",m:"醫院",p:"名詞",ex:"病院へ行きました。",exm:"去了醫院。"},
+  {id:77,k:"図書館",r:"としょかん",m:"圖書館",p:"名詞",ex:"図書館で勉強します。",exm:"在圖書館讀書。"},
+  {id:78,k:"郵便局",r:"ゆうびんきょく",m:"郵局",p:"名詞",ex:"郵便局で切手を買います。",exm:"在郵局買郵票。"},
+  {id:79,k:"本屋",r:"ほんや",m:"書店",p:"名詞",ex:"本屋で本を買いました。",exm:"在書店買了書。"},
+  {id:80,k:"レストラン",r:"レストラン",m:"餐廳",p:"名詞",ex:"レストランで食事します。",exm:"在餐廳用餐。"},
+  {id:81,k:"喫茶店",r:"きっさてん",m:"咖啡廳",p:"名詞",ex:"喫茶店でコーヒーを飲みました。",exm:"在咖啡廳喝了咖啡。"},
+  {id:82,k:"公園",r:"こうえん",m:"公園",p:"名詞",ex:"公園を散歩します。",exm:"在公園散步。"},
+  {id:83,k:"映画館",r:"えいがかん",m:"電影院",p:"名詞",ex:"映画館で映画を見ます。",exm:"在電影院看電影。"},
+  {id:84,k:"教室",r:"きょうしつ",m:"教室",p:"名詞",ex:"教室は二階にあります。",exm:"教室在二樓。"},
+  {id:85,k:"トイレ",r:"トイレ",m:"廁所",p:"名詞",ex:"トイレはどこですか。",exm:"廁所在哪裡？"},
+  {id:86,k:"ホテル",r:"ホテル",m:"飯店",p:"名詞",ex:"ホテルに泊まります。",exm:"住飯店。"},
+  {id:87,k:"大学",r:"だいがく",m:"大學",p:"名詞",ex:"大学で日本語を教えています。",exm:"在大學教日語。"},
+
+  // ===== 食べ物・飲み物 =====
+  {id:88,k:"食べ物",r:"たべもの",m:"食物",p:"名詞",ex:"好きな食べ物は何ですか。",exm:"喜歡的食物是什麼？"},
+  {id:89,k:"飲み物",r:"のみもの",m:"飲料",p:"名詞",ex:"飲み物は何にしますか。",exm:"飲料要什麼？"},
+  {id:90,k:"ご飯",r:"ごはん",m:"飯",p:"名詞",ex:"ご飯を食べます。",exm:"吃飯。"},
+  {id:91,k:"朝ご飯",r:"あさごはん",m:"早餐",p:"名詞",ex:"朝ご飯はパンです。",exm:"早餐吃麵包。"},
+  {id:92,k:"昼ご飯",r:"ひるごはん",m:"午餐",p:"名詞",ex:"昼ご飯を食べました。",exm:"吃了午餐。"},
+  {id:93,k:"晩ご飯",r:"ばんごはん",m:"晚餐",p:"名詞",ex:"晩ご飯は七時です。",exm:"晚餐是七點。"},
+  {id:94,k:"パン",r:"パン",m:"麵包",p:"名詞",ex:"パンを買いました。",exm:"買了麵包。"},
+  {id:95,k:"肉",r:"にく",m:"肉",p:"名詞",ex:"肉が好きです。",exm:"喜歡吃肉。"},
+  {id:96,k:"魚",r:"さかな",m:"魚",p:"名詞",ex:"魚を食べます。",exm:"吃魚。"},
+  {id:97,k:"野菜",r:"やさい",m:"蔬菜",p:"名詞",ex:"野菜は体にいいです。",exm:"蔬菜對身體好。"},
+  {id:98,k:"果物",r:"くだもの",m:"水果",p:"名詞",ex:"果物が好きです。",exm:"喜歡水果。"},
+  {id:99,k:"卵",r:"たまご",m:"蛋",p:"名詞",ex:"卵を二つください。",exm:"請給我兩個蛋。"},
+  {id:100,k:"お菓子",r:"おかし",m:"零食、點心",p:"名詞",ex:"お菓子を食べました。",exm:"吃了點心。"},
+  {id:101,k:"水",r:"みず",m:"水",p:"名詞",ex:"水を飲みます。",exm:"喝水。"},
+  {id:102,k:"お茶",r:"おちゃ",m:"茶",p:"名詞",ex:"お茶をどうぞ。",exm:"請喝茶。"},
+  {id:103,k:"コーヒー",r:"コーヒー",m:"咖啡",p:"名詞",ex:"コーヒーを一杯ください。",exm:"請給我一杯咖啡。"},
+  {id:104,k:"牛乳",r:"ぎゅうにゅう",m:"牛奶",p:"名詞",ex:"毎朝牛乳を飲みます。",exm:"每天早上喝牛奶。"},
+  {id:105,k:"ジュース",r:"ジュース",m:"果汁",p:"名詞",ex:"オレンジジュースを買いました。",exm:"買了柳橙汁。"},
+  {id:106,k:"ビール",r:"ビール",m:"啤酒",p:"名詞",ex:"ビールを飲みます。",exm:"喝啤酒。"},
+  {id:107,k:"お酒",r:"おさけ",m:"酒",p:"名詞",ex:"お酒は飲みません。",exm:"我不喝酒。"},
+
+  // ===== 体 =====
+  {id:108,k:"体",r:"からだ",m:"身體",p:"名詞",ex:"体に気をつけてください。",exm:"請保重身體。"},
+  {id:109,k:"頭",r:"あたま",m:"頭",p:"名詞",ex:"頭が痛いです。",exm:"頭痛。"},
+  {id:110,k:"顔",r:"かお",m:"臉",p:"名詞",ex:"顔を洗います。",exm:"洗臉。"},
+  {id:111,k:"目",r:"め",m:"眼睛",p:"名詞",ex:"目が大きいです。",exm:"眼睛很大。"},
+  {id:112,k:"耳",r:"みみ",m:"耳朵",p:"名詞",ex:"耳が痛いです。",exm:"耳朵痛。"},
+  {id:113,k:"口",r:"くち",m:"嘴巴",p:"名詞",ex:"口を開けてください。",exm:"請張開嘴。"},
+  {id:114,k:"鼻",r:"はな",m:"鼻子",p:"名詞",ex:"鼻が高いです。",exm:"鼻子很挺。"},
+  {id:115,k:"歯",r:"は",m:"牙齒",p:"名詞",ex:"歯を磨きます。",exm:"刷牙。"},
+  {id:116,k:"手",r:"て",m:"手",p:"名詞",ex:"手を洗ってください。",exm:"請洗手。"},
+  {id:117,k:"足",r:"あし",m:"腳",p:"名詞",ex:"足が疲れました。",exm:"腳累了。"},
+
+  // ===== 物 =====
+  {id:118,k:"本",r:"ほん",m:"書",p:"名詞",ex:"本を読みます。",exm:"看書。"},
+  {id:119,k:"ノート",r:"ノート",m:"筆記本",p:"名詞",ex:"ノートに書きます。",exm:"寫在筆記本上。"},
+  {id:120,k:"ペン",r:"ペン",m:"筆",p:"名詞",ex:"ペンで書いてください。",exm:"請用筆寫。"},
+  {id:121,k:"鉛筆",r:"えんぴつ",m:"鉛筆",p:"名詞",ex:"鉛筆を貸してください。",exm:"請借我鉛筆。"},
+  {id:122,k:"消しゴム",r:"けしゴム",m:"橡皮擦",p:"名詞",ex:"消しゴムで消します。",exm:"用橡皮擦擦掉。"},
+  {id:123,k:"辞書",r:"じしょ",m:"字典",p:"名詞",ex:"辞書で調べます。",exm:"用字典查。"},
+  {id:124,k:"新聞",r:"しんぶん",m:"報紙",p:"名詞",ex:"毎朝新聞を読みます。",exm:"每天早上看報紙。"},
+  {id:125,k:"雑誌",r:"ざっし",m:"雜誌",p:"名詞",ex:"雑誌を買いました。",exm:"買了雜誌。"},
+  {id:126,k:"紙",r:"かみ",m:"紙",p:"名詞",ex:"紙に名前を書きます。",exm:"在紙上寫名字。"},
+  {id:127,k:"切手",r:"きって",m:"郵票",p:"名詞",ex:"切手を貼ります。",exm:"貼郵票。"},
+  {id:128,k:"手紙",r:"てがみ",m:"信",p:"名詞",ex:"手紙を書きました。",exm:"寫了信。"},
+  {id:129,k:"写真",r:"しゃしん",m:"照片",p:"名詞",ex:"写真を撮ります。",exm:"拍照。"},
+  {id:130,k:"机",r:"つくえ",m:"桌子",p:"名詞",ex:"机の上に本があります。",exm:"桌上有書。"},
+  {id:131,k:"椅子",r:"いす",m:"椅子",p:"名詞",ex:"椅子に座ってください。",exm:"請坐椅子。"},
+  {id:132,k:"テレビ",r:"テレビ",m:"電視",p:"名詞",ex:"テレビを見ます。",exm:"看電視。"},
+  {id:133,k:"ラジオ",r:"ラジオ",m:"收音機",p:"名詞",ex:"ラジオを聞きます。",exm:"聽收音機。"},
+  {id:134,k:"電話",r:"でんわ",m:"電話",p:"名詞",ex:"電話をかけます。",exm:"打電話。"},
+  {id:135,k:"カメラ",r:"カメラ",m:"相機",p:"名詞",ex:"カメラを買いました。",exm:"買了相機。"},
+  {id:136,k:"時計",r:"とけい",m:"時鐘、手錶",p:"名詞",ex:"時計を見ます。",exm:"看錶。"},
+  {id:137,k:"鞄",r:"かばん",m:"包包",p:"名詞",ex:"鞄が重いです。",exm:"包包很重。"},
+  {id:138,k:"財布",r:"さいふ",m:"錢包",p:"名詞",ex:"財布を忘れました。",exm:"忘了帶錢包。"},
+  {id:139,k:"傘",r:"かさ",m:"雨傘",p:"名詞",ex:"傘を持って行きます。",exm:"帶傘去。"},
+  {id:140,k:"靴",r:"くつ",m:"鞋子",p:"名詞",ex:"靴を脱いでください。",exm:"請脫鞋。"},
+  {id:141,k:"服",r:"ふく",m:"衣服",p:"名詞",ex:"新しい服を買いました。",exm:"買了新衣服。"},
+  {id:142,k:"車",r:"くるま",m:"汽車",p:"名詞",ex:"車で行きます。",exm:"開車去。"},
+  {id:143,k:"自転車",r:"じてんしゃ",m:"腳踏車",p:"名詞",ex:"自転車に乗ります。",exm:"騎腳踏車。"},
+  {id:144,k:"バス",r:"バス",m:"公車",p:"名詞",ex:"バスで通学します。",exm:"搭公車上學。"},
+  {id:145,k:"電車",r:"でんしゃ",m:"電車",p:"名詞",ex:"電車に乗ります。",exm:"搭電車。"},
+  {id:146,k:"飛行機",r:"ひこうき",m:"飛機",p:"名詞",ex:"飛行機で行きます。",exm:"搭飛機去。"},
+  {id:147,k:"地下鉄",r:"ちかてつ",m:"地下鐵",p:"名詞",ex:"地下鉄が便利です。",exm:"地鐵很方便。"},
+
+  // ===== 自然・天気 =====
+  {id:148,k:"天気",r:"てんき",m:"天氣",p:"名詞",ex:"今日はいい天気です。",exm:"今天天氣很好。"},
+  {id:149,k:"晴れ",r:"はれ",m:"晴天",p:"名詞",ex:"明日は晴れです。",exm:"明天是晴天。"},
+  {id:150,k:"雨",r:"あめ",m:"雨",p:"名詞",ex:"雨が降っています。",exm:"正在下雨。"},
+  {id:151,k:"雪",r:"ゆき",m:"雪",p:"名詞",ex:"雪が降りました。",exm:"下雪了。"},
+  {id:152,k:"風",r:"かぜ",m:"風",p:"名詞",ex:"風が強いです。",exm:"風很強。"},
+  {id:153,k:"空",r:"そら",m:"天空",p:"名詞",ex:"空が青いです。",exm:"天空很藍。"},
+  {id:154,k:"海",r:"うみ",m:"海",p:"名詞",ex:"海で泳ぎます。",exm:"在海裡游泳。"},
+  {id:155,k:"山",r:"やま",m:"山",p:"名詞",ex:"山に登ります。",exm:"爬山。"},
+  {id:156,k:"川",r:"かわ",m:"河川",p:"名詞",ex:"川が流れています。",exm:"河水在流。"},
+  {id:157,k:"木",r:"き",m:"樹木",p:"名詞",ex:"木が高いです。",exm:"樹很高。"},
+  {id:158,k:"花",r:"はな",m:"花",p:"名詞",ex:"花がきれいです。",exm:"花很漂亮。"},
+  {id:159,k:"犬",r:"いぬ",m:"狗",p:"名詞",ex:"犬を飼っています。",exm:"養著狗。"},
+  {id:160,k:"猫",r:"ねこ",m:"貓",p:"名詞",ex:"猫が好きです。",exm:"喜歡貓。"},
+  {id:161,k:"鳥",r:"とり",m:"鳥",p:"名詞",ex:"鳥が飛んでいます。",exm:"鳥在飛。"},
+
+  // ===== 色 =====
+  {id:162,k:"色",r:"いろ",m:"顏色",p:"名詞",ex:"好きな色は何ですか。",exm:"喜歡的顏色是什麼？"},
+  {id:163,k:"白",r:"しろ",m:"白色",p:"名詞",ex:"白いシャツを着ます。",exm:"穿白色襯衫。"},
+  {id:164,k:"黒",r:"くろ",m:"黑色",p:"名詞",ex:"黒い靴を買いました。",exm:"買了黑色的鞋。"},
+  {id:165,k:"赤",r:"あか",m:"紅色",p:"名詞",ex:"赤い花がきれいです。",exm:"紅色的花很美。"},
+  {id:166,k:"青",r:"あお",m:"藍色",p:"名詞",ex:"青い空が好きです。",exm:"喜歡藍天。"},
+  {id:167,k:"黄色",r:"きいろ",m:"黃色",p:"名詞",ex:"黄色いバナナです。",exm:"黃色的香蕉。"},
+  {id:168,k:"茶色",r:"ちゃいろ",m:"咖啡色",p:"名詞",ex:"茶色の鞄を持っています。",exm:"拿著咖啡色的包。"},
+  {id:169,k:"緑",r:"みどり",m:"綠色",p:"名詞",ex:"緑の葉です。",exm:"綠色的葉子。"},
+
+  // ===== 動詞 =====
+  {id:170,k:"食べる",r:"たべる",m:"吃",p:"動詞",ex:"朝ご飯を食べます。",exm:"吃早餐。"},
+  {id:171,k:"飲む",r:"のむ",m:"喝",p:"動詞",ex:"水を飲みます。",exm:"喝水。"},
+  {id:172,k:"見る",r:"みる",m:"看",p:"動詞",ex:"テレビを見ます。",exm:"看電視。"},
+  {id:173,k:"聞く",r:"きく",m:"聽、問",p:"動詞",ex:"音楽を聞きます。",exm:"聽音樂。"},
+  {id:174,k:"話す",r:"はなす",m:"說、講",p:"動詞",ex:"日本語を話します。",exm:"說日語。"},
+  {id:175,k:"読む",r:"よむ",m:"讀",p:"動詞",ex:"本を読みます。",exm:"看書。"},
+  {id:176,k:"書く",r:"かく",m:"寫",p:"動詞",ex:"手紙を書きます。",exm:"寫信。"},
+  {id:177,k:"行く",r:"いく",m:"去",p:"動詞",ex:"学校に行きます。",exm:"去學校。"},
+  {id:178,k:"来る",r:"くる",m:"來",p:"動詞",ex:"友達が来ます。",exm:"朋友會來。"},
+  {id:179,k:"帰る",r:"かえる",m:"回家、回去",p:"動詞",ex:"家に帰ります。",exm:"回家。"},
+  {id:180,k:"入る",r:"はいる",m:"進入",p:"動詞",ex:"部屋に入ります。",exm:"進入房間。"},
+  {id:181,k:"出る",r:"でる",m:"出去、出來",p:"動詞",ex:"家を出ます。",exm:"出門。"},
+  {id:182,k:"立つ",r:"たつ",m:"站",p:"動詞",ex:"立ってください。",exm:"請站起來。"},
+  {id:183,k:"座る",r:"すわる",m:"坐",p:"動詞",ex:"椅子に座ります。",exm:"坐在椅子上。"},
+  {id:184,k:"買う",r:"かう",m:"買",p:"動詞",ex:"パンを買います。",exm:"買麵包。"},
+  {id:185,k:"売る",r:"うる",m:"賣",p:"動詞",ex:"切符を売っています。",exm:"在賣票。"},
+  {id:186,k:"貸す",r:"かす",m:"借（出）",p:"動詞",ex:"本を貸してください。",exm:"請借我書。"},
+  {id:187,k:"借りる",r:"かりる",m:"借（入）",p:"動詞",ex:"図書館で本を借ります。",exm:"在圖書館借書。"},
+  {id:188,k:"教える",r:"おしえる",m:"教",p:"動詞",ex:"日本語を教えています。",exm:"在教日語。"},
+  {id:189,k:"習う",r:"ならう",m:"學習",p:"動詞",ex:"ピアノを習います。",exm:"學鋼琴。"},
+  {id:190,k:"勉強する",r:"べんきょうする",m:"學習、用功",p:"動詞",ex:"毎日勉強します。",exm:"每天學習。"},
+  {id:191,k:"起きる",r:"おきる",m:"起床",p:"動詞",ex:"七時に起きます。",exm:"七點起床。"},
+  {id:192,k:"寝る",r:"ねる",m:"睡覺",p:"動詞",ex:"十時に寝ます。",exm:"十點睡覺。"},
+  {id:193,k:"休む",r:"やすむ",m:"休息、請假",p:"動詞",ex:"週末は休みます。",exm:"週末休息。"},
+  {id:194,k:"働く",r:"はたらく",m:"工作",p:"動詞",ex:"会社で働いています。",exm:"在公司工作。"},
+  {id:195,k:"する",r:"する",m:"做",p:"動詞",ex:"宿題をします。",exm:"做作業。"},
+  {id:196,k:"いる",r:"いる",m:"在（人/動物）",p:"動詞",ex:"家に父がいます。",exm:"爸爸在家。"},
+  {id:197,k:"ある",r:"ある",m:"在、有（物）",p:"動詞",ex:"机の上に本があります。",exm:"桌上有書。"},
+  {id:198,k:"分かる",r:"わかる",m:"懂、明白",p:"動詞",ex:"意味が分かりません。",exm:"不懂意思。"},
+  {id:199,k:"知る",r:"しる",m:"知道",p:"動詞",ex:"あの人を知っています。",exm:"我認識那個人。"},
+  {id:200,k:"忘れる",r:"わすれる",m:"忘記",p:"動詞",ex:"名前を忘れました。",exm:"忘了名字。"},
+  {id:201,k:"覚える",r:"おぼえる",m:"記住",p:"動詞",ex:"単語を覚えます。",exm:"背單字。"},
+  {id:202,k:"待つ",r:"まつ",m:"等待",p:"動詞",ex:"少し待ってください。",exm:"請等一下。"},
+  {id:203,k:"会う",r:"あう",m:"見面",p:"動詞",ex:"友達に会います。",exm:"和朋友見面。"},
+  {id:204,k:"住む",r:"すむ",m:"居住",p:"動詞",ex:"東京に住んでいます。",exm:"住在東京。"},
+  {id:205,k:"使う",r:"つかう",m:"使用",p:"動詞",ex:"パソコンを使います。",exm:"使用電腦。"},
+  {id:206,k:"洗う",r:"あらう",m:"洗",p:"動詞",ex:"手を洗います。",exm:"洗手。"},
+  {id:207,k:"開ける",r:"あける",m:"打開",p:"動詞",ex:"窓を開けます。",exm:"打開窗戶。"},
+  {id:208,k:"閉める",r:"しめる",m:"關閉",p:"動詞",ex:"ドアを閉めてください。",exm:"請關門。"},
+  {id:209,k:"つける",r:"つける",m:"開（電源）",p:"動詞",ex:"電気をつけます。",exm:"開燈。"},
+  {id:210,k:"消す",r:"けす",m:"關（電源）、擦掉",p:"動詞",ex:"電気を消します。",exm:"關燈。"},
+  {id:211,k:"撮る",r:"とる",m:"拍（照）",p:"動詞",ex:"写真を撮ります。",exm:"拍照。"},
+  {id:212,k:"歌う",r:"うたう",m:"唱歌",p:"動詞",ex:"歌を歌います。",exm:"唱歌。"},
+  {id:213,k:"泳ぐ",r:"およぐ",m:"游泳",p:"動詞",ex:"海で泳ぎます。",exm:"在海裡游泳。"},
+  {id:214,k:"遊ぶ",r:"あそぶ",m:"玩",p:"動詞",ex:"公園で遊びます。",exm:"在公園玩。"},
+  {id:215,k:"走る",r:"はしる",m:"跑",p:"動詞",ex:"毎朝公園を走ります。",exm:"每天早上在公園跑步。"},
+  {id:216,k:"歩く",r:"あるく",m:"走路",p:"動詞",ex:"駅まで歩きます。",exm:"走到車站。"},
+  {id:217,k:"乗る",r:"のる",m:"搭乘",p:"動詞",ex:"電車に乗ります。",exm:"搭電車。"},
+  {id:218,k:"降りる",r:"おりる",m:"下車",p:"動詞",ex:"次の駅で降ります。",exm:"在下一站下車。"},
+  {id:219,k:"持つ",r:"もつ",m:"拿、持有",p:"動詞",ex:"鞄を持ちます。",exm:"拿包包。"},
+  {id:220,k:"作る",r:"つくる",m:"製作",p:"動詞",ex:"料理を作ります。",exm:"做菜。"},
+  {id:221,k:"出かける",r:"でかける",m:"外出",p:"動詞",ex:"買い物に出かけます。",exm:"出門購物。"},
+  {id:222,k:"始まる",r:"はじまる",m:"開始（自動）",p:"動詞",ex:"映画が始まりました。",exm:"電影開始了。"},
+  {id:223,k:"終わる",r:"おわる",m:"結束",p:"動詞",ex:"授業が終わりました。",exm:"課結束了。"},
+  {id:224,k:"降る",r:"ふる",m:"下（雨/雪）",p:"動詞",ex:"雨が降っています。",exm:"在下雨。"},
+
+  // ===== 形容詞（い形） =====
+  {id:225,k:"大きい",r:"おおきい",m:"大的",p:"形容詞",ex:"大きい家です。",exm:"是大房子。"},
+  {id:226,k:"小さい",r:"ちいさい",m:"小的",p:"形容詞",ex:"小さい犬がいます。",exm:"有隻小狗。"},
+  {id:227,k:"新しい",r:"あたらしい",m:"新的",p:"形容詞",ex:"新しい車を買いました。",exm:"買了新車。"},
+  {id:228,k:"古い",r:"ふるい",m:"舊的",p:"形容詞",ex:"古い本があります。",exm:"有舊書。"},
+  {id:229,k:"高い",r:"たかい",m:"高的、貴的",p:"形容詞",ex:"このかばんは高いです。",exm:"這個包包很貴。"},
+  {id:230,k:"低い",r:"ひくい",m:"低的、矮的",p:"形容詞",ex:"声が低いです。",exm:"聲音很低。"},
+  {id:231,k:"安い",r:"やすい",m:"便宜的",p:"形容詞",ex:"この店は安いです。",exm:"這家店很便宜。"},
+  {id:232,k:"長い",r:"ながい",m:"長的",p:"形容詞",ex:"髪が長いです。",exm:"頭髮很長。"},
+  {id:233,k:"短い",r:"みじかい",m:"短的",p:"形容詞",ex:"スカートが短いです。",exm:"裙子很短。"},
+  {id:234,k:"重い",r:"おもい",m:"重的",p:"形容詞",ex:"この鞄は重いです。",exm:"這個包很重。"},
+  {id:235,k:"軽い",r:"かるい",m:"輕的",p:"形容詞",ex:"軽いノートです。",exm:"是輕的筆記本。"},
+  {id:236,k:"いい",r:"いい",m:"好的",p:"形容詞",ex:"いい天気ですね。",exm:"天氣真好。"},
+  {id:237,k:"悪い",r:"わるい",m:"壞的",p:"形容詞",ex:"頭が悪いです。",exm:"頭腦不好（笨）。"},
+  {id:238,k:"暑い",r:"あつい",m:"熱的（天氣）",p:"形容詞",ex:"今日は暑いです。",exm:"今天很熱。"},
+  {id:239,k:"寒い",r:"さむい",m:"冷的（天氣）",p:"形容詞",ex:"冬は寒いです。",exm:"冬天很冷。"},
+  {id:240,k:"熱い",r:"あつい",m:"燙的（物體）",p:"形容詞",ex:"お茶が熱いです。",exm:"茶很燙。"},
+  {id:241,k:"冷たい",r:"つめたい",m:"冰的、冷的（物體）",p:"形容詞",ex:"冷たい水を飲みます。",exm:"喝冰水。"},
+  {id:242,k:"暖かい",r:"あたたかい",m:"溫暖的",p:"形容詞",ex:"春は暖かいです。",exm:"春天很溫暖。"},
+  {id:243,k:"涼しい",r:"すずしい",m:"涼爽的",p:"形容詞",ex:"秋は涼しいです。",exm:"秋天涼爽。"},
+  {id:244,k:"明るい",r:"あかるい",m:"明亮的",p:"形容詞",ex:"部屋が明るいです。",exm:"房間很明亮。"},
+  {id:245,k:"暗い",r:"くらい",m:"昏暗的",p:"形容詞",ex:"外は暗いです。",exm:"外面很暗。"},
+  {id:246,k:"近い",r:"ちかい",m:"近的",p:"形容詞",ex:"駅は近いです。",exm:"車站很近。"},
+  {id:247,k:"遠い",r:"とおい",m:"遠的",p:"形容詞",ex:"家から遠いです。",exm:"離家很遠。"},
+  {id:248,k:"早い",r:"はやい",m:"早的",p:"形容詞",ex:"朝が早いです。",exm:"早上很早。"},
+  {id:249,k:"速い",r:"はやい",m:"快的",p:"形容詞",ex:"電車が速いです。",exm:"電車很快。"},
+  {id:250,k:"遅い",r:"おそい",m:"慢的、遲的",p:"形容詞",ex:"バスが遅いです。",exm:"公車很慢。"},
+  {id:251,k:"美味しい",r:"おいしい",m:"好吃的",p:"形容詞",ex:"このケーキは美味しいです。",exm:"這蛋糕很好吃。"},
+  {id:252,k:"まずい",r:"まずい",m:"難吃的",p:"形容詞",ex:"この料理はまずいです。",exm:"這道菜很難吃。"},
+  {id:253,k:"楽しい",r:"たのしい",m:"快樂的",p:"形容詞",ex:"パーティーは楽しかったです。",exm:"派對很開心。"},
+  {id:254,k:"つまらない",r:"つまらない",m:"無聊的",p:"形容詞",ex:"映画はつまらなかったです。",exm:"電影很無聊。"},
+  {id:255,k:"忙しい",r:"いそがしい",m:"忙碌的",p:"形容詞",ex:"今日は忙しいです。",exm:"今天很忙。"},
+  {id:256,k:"優しい",r:"やさしい",m:"溫柔的",p:"形容詞",ex:"母は優しいです。",exm:"媽媽很溫柔。"},
+  {id:257,k:"難しい",r:"むずかしい",m:"困難的",p:"形容詞",ex:"漢字は難しいです。",exm:"漢字很難。"},
+  {id:258,k:"易しい",r:"やさしい",m:"容易的",p:"形容詞",ex:"問題は易しいです。",exm:"問題很簡單。"},
+  {id:259,k:"面白い",r:"おもしろい",m:"有趣的",p:"形容詞",ex:"この本は面白いです。",exm:"這本書很有趣。"},
+  {id:260,k:"強い",r:"つよい",m:"強的",p:"形容詞",ex:"風が強いです。",exm:"風很強。"},
+  {id:261,k:"弱い",r:"よわい",m:"弱的",p:"形容詞",ex:"体が弱いです。",exm:"身體很虛弱。"},
+  {id:262,k:"若い",r:"わかい",m:"年輕的",p:"形容詞",ex:"彼は若いです。",exm:"他很年輕。"},
+  {id:263,k:"多い",r:"おおい",m:"多的",p:"形容詞",ex:"人が多いです。",exm:"人很多。"},
+  {id:264,k:"少ない",r:"すくない",m:"少的",p:"形容詞",ex:"お金が少ないです。",exm:"錢很少。"},
+
+  // ===== 形容詞（な形） =====
+  {id:265,k:"元気",r:"げんき",m:"有精神、健康",p:"な形容詞",ex:"今日も元気です。",exm:"今天也很有精神。"},
+  {id:266,k:"静か",r:"しずか",m:"安靜的",p:"な形容詞",ex:"図書館は静かです。",exm:"圖書館很安靜。"},
+  {id:267,k:"賑やか",r:"にぎやか",m:"熱鬧的",p:"な形容詞",ex:"この町は賑やかです。",exm:"這個城鎮很熱鬧。"},
+  {id:268,k:"有名",r:"ゆうめい",m:"有名的",p:"な形容詞",ex:"有名な歌手です。",exm:"是有名的歌手。"},
+  {id:269,k:"親切",r:"しんせつ",m:"親切的",p:"な形容詞",ex:"親切な人です。",exm:"是親切的人。"},
+  {id:270,k:"便利",r:"べんり",m:"方便的",p:"な形容詞",ex:"駅は便利です。",exm:"車站很方便。"},
+  {id:271,k:"不便",r:"ふべん",m:"不方便的",p:"な形容詞",ex:"ここは不便です。",exm:"這裡不方便。"},
+  {id:272,k:"きれい",r:"きれい",m:"漂亮的、乾淨的",p:"な形容詞",ex:"花がきれいです。",exm:"花很漂亮。"},
+  {id:273,k:"好き",r:"すき",m:"喜歡的",p:"な形容詞",ex:"日本料理が好きです。",exm:"喜歡日本料理。"},
+  {id:274,k:"嫌い",r:"きらい",m:"討厭的",p:"な形容詞",ex:"虫が嫌いです。",exm:"討厭蟲。"},
+  {id:275,k:"上手",r:"じょうず",m:"擅長的",p:"な形容詞",ex:"日本語が上手ですね。",exm:"日語真好。"},
+  {id:276,k:"下手",r:"へた",m:"不擅長的",p:"な形容詞",ex:"歌が下手です。",exm:"不擅長唱歌。"},
+  {id:277,k:"暇",r:"ひま",m:"閒暇的",p:"な形容詞",ex:"今日は暇です。",exm:"今天很閒。"},
+  {id:278,k:"大変",r:"たいへん",m:"辛苦的、不得了",p:"な形容詞",ex:"仕事は大変です。",exm:"工作很辛苦。"},
+  {id:279,k:"大丈夫",r:"だいじょうぶ",m:"沒關係",p:"な形容詞",ex:"大丈夫ですか。",exm:"沒事吧？"},
+  {id:280,k:"簡単",r:"かんたん",m:"簡單的",p:"な形容詞",ex:"簡単な問題です。",exm:"是簡單的問題。"},
+  {id:281,k:"同じ",r:"おなじ",m:"相同的",p:"な形容詞",ex:"同じクラスです。",exm:"同一班。"},
+  {id:282,k:"色々",r:"いろいろ",m:"各式各樣的",p:"な形容詞",ex:"色々な国へ行きました。",exm:"去過各種國家。"},
+
+  // ===== 副詞 =====
+  {id:283,k:"とても",r:"とても",m:"非常",p:"副詞",ex:"とても面白いです。",exm:"非常有趣。"},
+  {id:284,k:"たくさん",r:"たくさん",m:"很多",p:"副詞",ex:"本がたくさんあります。",exm:"有很多書。"},
+  {id:285,k:"少し",r:"すこし",m:"一點點",p:"副詞",ex:"少し待ってください。",exm:"請稍等一下。"},
+  {id:286,k:"ちょっと",r:"ちょっと",m:"稍微",p:"副詞",ex:"ちょっと寒いです。",exm:"有點冷。"},
+  {id:287,k:"よく",r:"よく",m:"經常、好好地",p:"副詞",ex:"よく映画を見ます。",exm:"常看電影。"},
+  {id:288,k:"いつも",r:"いつも",m:"總是",p:"副詞",ex:"いつも七時に起きます。",exm:"總是七點起床。"},
+  {id:289,k:"時々",r:"ときどき",m:"有時",p:"副詞",ex:"時々お酒を飲みます。",exm:"偶爾喝酒。"},
+  {id:290,k:"あまり",r:"あまり",m:"不太（接否定）",p:"副詞",ex:"あまり食べません。",exm:"不太吃。"},
+  {id:291,k:"全然",r:"ぜんぜん",m:"完全不（接否定）",p:"副詞",ex:"全然分かりません。",exm:"完全不懂。"},
+  {id:292,k:"すぐ",r:"すぐ",m:"馬上",p:"副詞",ex:"すぐ行きます。",exm:"馬上就去。"},
+  {id:293,k:"もう",r:"もう",m:"已經",p:"副詞",ex:"もう食べました。",exm:"已經吃過了。"},
+  {id:294,k:"まだ",r:"まだ",m:"還、尚未",p:"副詞",ex:"まだ来ていません。",exm:"還沒來。"},
+  {id:295,k:"また",r:"また",m:"再次",p:"副詞",ex:"また来てください。",exm:"請再來。"},
+  {id:296,k:"もっと",r:"もっと",m:"更",p:"副詞",ex:"もっと頑張ります。",exm:"會更努力。"},
+  {id:297,k:"一番",r:"いちばん",m:"最",p:"副詞",ex:"これが一番好きです。",exm:"最喜歡這個。"},
+  {id:298,k:"本当に",r:"ほんとうに",m:"真的",p:"副詞",ex:"本当にありがとう。",exm:"真的謝謝。"},
+
+  // ===== 指示詞・疑問詞 =====
+  {id:299,k:"これ",r:"これ",m:"這個",p:"名詞",ex:"これは何ですか。",exm:"這是什麼？"},
+  {id:300,k:"それ",r:"それ",m:"那個",p:"名詞",ex:"それは私の本です。",exm:"那是我的書。"},
+  {id:301,k:"あれ",r:"あれ",m:"那個（遠）",p:"名詞",ex:"あれは何ですか。",exm:"那是什麼？"},
+  {id:302,k:"ここ",r:"ここ",m:"這裡",p:"名詞",ex:"ここで待ちます。",exm:"在這裡等。"},
+  {id:303,k:"そこ",r:"そこ",m:"那裡",p:"名詞",ex:"そこに置いてください。",exm:"請放那裡。"},
+  {id:304,k:"あそこ",r:"あそこ",m:"那裡（遠）",p:"名詞",ex:"あそこが私の家です。",exm:"那邊就是我家。"},
+  {id:305,k:"誰",r:"だれ",m:"誰",p:"名詞",ex:"あの人は誰ですか。",exm:"那個人是誰？"},
+  {id:306,k:"何",r:"なに",m:"什麼",p:"名詞",ex:"何を食べますか。",exm:"要吃什麼？"},
+  {id:307,k:"どこ",r:"どこ",m:"哪裡",p:"名詞",ex:"トイレはどこですか。",exm:"廁所在哪裡？"},
+  {id:308,k:"いつ",r:"いつ",m:"什麼時候",p:"名詞",ex:"いつ来ますか。",exm:"什麼時候來？"},
+  {id:309,k:"どうして",r:"どうして",m:"為什麼",p:"副詞",ex:"どうして泣いていますか。",exm:"為什麼在哭？"},
+  {id:310,k:"いくら",r:"いくら",m:"多少（錢）",p:"副詞",ex:"これはいくらですか。",exm:"這個多少錢？"},
+  {id:311,k:"いくつ",r:"いくつ",m:"幾個、幾歲",p:"副詞",ex:"おいくつですか。",exm:"您幾歲？"},
+
+  // ===== 挨拶・表現 =====
+  {id:312,k:"おはよう",r:"おはよう",m:"早安",p:"表現",ex:"おはようございます。",exm:"早安。"},
+  {id:313,k:"こんにちは",r:"こんにちは",m:"你好",p:"表現",ex:"こんにちは、田中さん。",exm:"你好，田中先生。"},
+  {id:314,k:"こんばんは",r:"こんばんは",m:"晚上好",p:"表現",ex:"こんばんは。",exm:"晚上好。"},
+  {id:315,k:"さようなら",r:"さようなら",m:"再見",p:"表現",ex:"さようなら、また明日。",exm:"再見，明天見。"},
+  {id:316,k:"すみません",r:"すみません",m:"對不起、不好意思",p:"表現",ex:"すみません、ちょっと聞きます。",exm:"不好意思，請問一下。"},
+  {id:317,k:"ありがとう",r:"ありがとう",m:"謝謝",p:"表現",ex:"ありがとうございます。",exm:"謝謝您。"},
+  {id:318,k:"ごめんなさい",r:"ごめんなさい",m:"對不起",p:"表現",ex:"遅れてごめんなさい。",exm:"對不起遲到了。"},
+  {id:319,k:"はい",r:"はい",m:"是、好",p:"表現",ex:"はい、わかりました。",exm:"是，我懂了。"},
+  {id:320,k:"いいえ",r:"いいえ",m:"不、不是",p:"表現",ex:"いいえ、違います。",exm:"不，不是。"},
+];
+
+// ===================== SRS & PROGRESS =====================
+const PROG_KEY = 'n5_prog_v2';
+const META_KEY = 'n5_meta_v2';
+
+function loadProg() { return JSON.parse(localStorage.getItem(PROG_KEY) || '{}'); }
+function saveProg(p) { localStorage.setItem(PROG_KEY, JSON.stringify(p)); }
+function loadMeta() { return JSON.parse(localStorage.getItem(META_KEY) || '{"streak":0,"lastDate":"","totalReviews":0,"totalCorrect":0}'); }
+function saveMeta(m) { localStorage.setItem(META_KEY, JSON.stringify(m)); }
+
+function getWordProg(id) {
+  const p = loadProg();
+  return p[id] || { status:'new', interval:0, reps:0, ef:2.5, next:null, reviews:0, correct:0 };
+}
+
+function updateWordProg(id, q) { // q: 0=wrong,1=hard,2=ok,3=easy
+  const prog = loadProg();
+  const wp = prog[id] || { status:'new', interval:0, reps:0, ef:2.5, next:null, reviews:0, correct:0 };
+  wp.reviews++;
+  if (q >= 2) wp.correct++;
+  if (q === 0) {
+    wp.interval = 1; wp.reps = 0; wp.status = 'learning';
+  } else if (q === 1) {
+    wp.interval = Math.max(1, wp.interval < 2 ? 1 : Math.floor(wp.interval * 1.2));
+    wp.reps = Math.max(0, wp.reps - 1); wp.status = 'learning';
+  } else {
+    if (wp.reps === 0) wp.interval = 1;
+    else if (wp.reps === 1) wp.interval = 6;
+    else wp.interval = Math.round(wp.interval * wp.ef);
+    if (q === 3) { wp.interval = Math.round(wp.interval * 1.3); wp.ef = Math.min(3.0, wp.ef + 0.15); }
+    else { wp.ef = Math.max(1.3, wp.ef + 0.1 - (3-q)*(0.08+(3-q)*0.02)); }
+    wp.reps++;
+    wp.status = wp.interval >= 21 ? 'learned' : 'learning';
+  }
+  const d = new Date(); d.setDate(d.getDate() + wp.interval);
+  wp.next = d.toISOString().split('T')[0];
+  prog[id] = wp;
+  saveProg(prog);
+
+  const meta = loadMeta();
+  meta.totalReviews++;
+  if (q >= 2) meta.totalCorrect++;
+  const today = new Date().toISOString().split('T')[0];
+  if (meta.lastDate !== today) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const yStr = yesterday.toISOString().split('T')[0];
+    meta.streak = meta.lastDate === yStr ? meta.streak + 1 : 1;
+    meta.lastDate = today;
+  }
+  saveMeta(meta);
+  return wp;
+}
+
+function getDueWords() {
+  const today = new Date().toISOString().split('T')[0];
+  return WORDS.filter(w => {
+    const wp = getWordProg(w.id);
+    return wp.status !== 'new' && (wp.next === null || wp.next <= today);
+  });
+}
+
+function getNewWords(limit=10) {
+  return WORDS.filter(w => getWordProg(w.id).status === 'new').slice(0, limit);
+}
+
+// ===================== UI STATE =====================
+let curScreen = 'home';
+let wordFilter = 'all';
+let fcSession = { words:[], idx:0, correct:0, wrong:0, flipped:false };
+let qzSession = { words:[], idx:0, correct:0, answered:false };
+let currentModalWord = null;
+
+// ===================== TTS =====================
+function speak(text, rate = 0.95) {
+  if (!window.speechSynthesis) { showToast('裝置不支援語音功能'); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP';
+  u.rate = rate;
+  u.pitch = 1.0;
+  // pick Japanese voice if available
+  const voices = speechSynthesis.getVoices();
+  const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang.startsWith('ja'));
+  if (jaVoice) u.voice = jaVoice;
+  speechSynthesis.speak(u);
+}
+function speakFC() {
+  const w = fcSession.words[fcSession.idx];
+  if (w) speak(w.k);
+}
+function speakFCEx() {
+  const w = fcSession.words[fcSession.idx];
+  if (w && w.ex) speak(w.ex, 0.85);
+  else showToast('此單字沒有例句');
+}
+function speakQZ() {
+  const w = qzSession.words[qzSession.idx];
+  if (w) speak(w.k);
+}
+function speakModal() {
+  if (currentModalWord) speak(currentModalWord.k);
+}
+function speakModalEx() {
+  if (currentModalWord && currentModalWord.ex) speak(currentModalWord.ex, 0.85);
+  else showToast('此單字沒有例句');
+}
+
+// ===================== NAVIGATION =====================
+function navigate(screen) {
+  if (['flashcard','quiz'].includes(screen)) {
+    if (screen === 'flashcard') startFlashcard('due');
+    else startQuiz();
+    return;
+  }
+  document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  const s = document.getElementById('s-'+screen);
+  s.style.display = 'block';
+  s.classList.add('active');
+  document.getElementById('nav-'+screen)?.classList.add('active');
+  curScreen = screen;
+  document.getElementById('bottom-nav').style.display = 'flex';
+  if (screen === 'home') updateHome();
+  if (screen === 'words') renderWordList();
+  if (screen === 'stats') renderStats();
+}
+
+function exitStudy() {
+  navigate('home');
+}
+
+// ===================== HOME =====================
+function updateHome() {
+  const meta = loadMeta();
+  const prog = loadProg();
+  const today = new Date().toISOString().split('T')[0];
+  const todayDate = new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  document.getElementById('today-date').textContent = todayDate;
+  document.getElementById('streak-num').textContent = '🔥 '+meta.streak+'天連續';
+
+  const due = getDueWords().length;
+  const nw = getNewWords(10).length;
+  let learned=0, total=0, rev=0, cor=0;
+  WORDS.forEach(w => {
+    total++;
+    const wp = prog[w.id];
+    if (wp) { if(wp.status==='learned') learned++; rev+=wp.reviews||0; cor+=wp.correct||0; }
+  });
+  document.getElementById('stat-due').textContent = due;
+  document.getElementById('stat-new').textContent = nw;
+  document.getElementById('stat-learned').textContent = learned;
+  document.getElementById('stat-acc').textContent = rev>0 ? Math.round(cor/rev*100)+'%' : '—';
+  const pct = Math.round(learned/total*100);
+  document.getElementById('prog-bar').style.width = pct+'%';
+  document.getElementById('prog-pct').textContent = pct+'%';
+  document.getElementById('total-words').textContent = '/ '+total+' 單字';
+}
+
+// ===================== FLASHCARD =====================
+function startFlashcard(mode) {
+  let words;
+  if (mode === 'due') {
+    words = getDueWords();
+    if (words.length === 0) {
+      words = getNewWords(10);
+      if (words.length === 0) { showToast('今天沒有需要複習的單字！'); return; }
+    }
+  } else {
+    words = getNewWords(15);
+    if (words.length === 0) { showToast('所有單字都已開始學習了！'); return; }
+  }
+  // shuffle
+  words = words.sort(() => Math.random()-0.5).slice(0, 20);
+  fcSession = { words, idx:0, correct:0, wrong:0, flipped:false };
+  showFCScreen();
+  loadFCCard();
+}
+
+function showFCScreen() {
+  document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+  document.getElementById('bottom-nav').style.display = 'none';
+  const sc = document.getElementById('s-flashcard');
+  sc.style.display = 'flex';
+  sc.classList.add('active');
+  document.getElementById('fc-session-body').style.display = 'flex';
+  document.getElementById('fc-done').style.display = 'none';
+}
+
+function loadFCCard() {
+  if (fcSession.idx >= fcSession.words.length) { showFCDone(); return; }
+  const w = fcSession.words[fcSession.idx];
+  document.getElementById('fc-counter').textContent = (fcSession.idx+1)+'/'+fcSession.words.length;
+  document.getElementById('fc-prog').style.width = (fcSession.idx/fcSession.words.length*100)+'%';
+  document.getElementById('fc-pos-front').textContent = w.p;
+  document.getElementById('fc-kanji').textContent = w.k;
+  document.getElementById('fc-reading').textContent = w.r;
+  document.getElementById('bc-kanji').textContent = w.k;
+  document.getElementById('bc-reading').textContent = w.r;
+  document.getElementById('bc-meaning').textContent = w.m;
+  document.getElementById('bc-pos').textContent = w.p;
+  const exEl = document.getElementById('bc-ex');
+  if (w.ex) { exEl.innerHTML = '<b>例：</b>'+w.ex+'<br>'+w.exm; exEl.style.display='block'; }
+  else { exEl.style.display='none'; }
+  document.getElementById('fc-speak-ex').classList.toggle('hidden', !w.ex);
+  document.getElementById('flip-inner').classList.remove('flipped');
+  fcSession.flipped = false;
+}
+
+function flipCard() {
+  const inner = document.getElementById('flip-inner');
+  fcSession.flipped = !fcSession.flipped;
+  if (fcSession.flipped) inner.classList.add('flipped');
+  else inner.classList.remove('flipped');
+}
+
+function rateCard(q) {
+  if (!fcSession.flipped) { flipCard(); return; }
+  const w = fcSession.words[fcSession.idx];
+  updateWordProg(w.id, q);
+  if (q >= 2) fcSession.correct++; else fcSession.wrong++;
+  fcSession.idx++;
+  setTimeout(loadFCCard, 200);
+}
+
+function showFCDone() {
+  document.getElementById('fc-session-body').style.display = 'none';
+  document.getElementById('fc-done').style.display = 'flex';
+  const total = fcSession.correct + fcSession.wrong;
+  document.getElementById('fc-done-title').textContent = '本輪完成！🎉';
+  document.getElementById('fc-done-sub').textContent =
+    '答對 '+fcSession.correct+'/'+total+' 張（'+Math.round(fcSession.correct/total*100)+'%）';
+}
+
+// ===================== QUIZ =====================
+function startQuiz() {
+  const pool = WORDS.filter(w => getWordProg(w.id).status !== 'new');
+  let words = pool.length >= 10 ? pool : WORDS;
+  words = words.sort(() => Math.random()-0.5).slice(0, 10);
+  qzSession = { words, idx:0, correct:0, answered:false };
+  showQZScreen();
+  loadQZQuestion();
+}
+
+function showQZScreen() {
+  document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+  document.getElementById('bottom-nav').style.display = 'none';
+  const sc = document.getElementById('s-quiz');
+  sc.style.display = 'flex';
+  sc.classList.add('active');
+  document.getElementById('qz-body').style.display = 'block';
+  document.getElementById('qz-score').style.display = 'none';
+}
+
+function loadQZQuestion() {
+  if (qzSession.idx >= qzSession.words.length) { showQZScore(); return; }
+  const w = qzSession.words[qzSession.idx];
+  document.getElementById('qz-counter').textContent = (qzSession.idx+1)+'/'+qzSession.words.length;
+  document.getElementById('qz-prog').style.width = (qzSession.idx/qzSession.words.length*100)+'%';
+  document.getElementById('qz-word').textContent = w.k;
+  document.getElementById('qz-reading').textContent = w.r;
+  const posEl = document.getElementById('qz-pos');
+  if (posEl) posEl.textContent = w.p;
+  qzSession.answered = false;
+
+  // build 4 choices
+  const wrong = WORDS.filter(x => x.id !== w.id).sort(() => Math.random()-0.5).slice(0,3);
+  const choices = [w, ...wrong].sort(() => Math.random()-0.5);
+  const el = document.getElementById('qz-choices');
+  el.innerHTML = '';
+  const labels = ['A','B','C','D'];
+  choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-label">${labels[i]}</span><span>${c.m}</span>`;
+    btn.onclick = () => answerQuiz(btn, c.id === w.id, w.id);
+    el.appendChild(btn);
+  });
+}
+
+function answerQuiz(btn, isCorrect, correctId) {
+  if (qzSession.answered) return;
+  qzSession.answered = true;
+  const correctMeaning = WORDS.find(x => x.id === correctId)?.m;
+  if (isCorrect) { btn.classList.add('correct'); qzSession.correct++; updateWordProg(correctId, 2); }
+  else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.choice-btn').forEach(b => {
+      const span = b.querySelectorAll('span')[1];
+      if (span && span.textContent === correctMeaning) b.classList.add('correct');
+    });
+    updateWordProg(correctId, 0);
+  }
+  document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('disabled'));
+  setTimeout(() => { qzSession.idx++; loadQZQuestion(); }, 1200);
+}
+
+function showQZScore() {
+  document.getElementById('qz-body').style.display = 'none';
+  document.getElementById('qz-score').style.display = 'block';
+  const total = qzSession.words.length;
+  const pct = Math.round(qzSession.correct/total*100);
+  document.getElementById('score-pct').textContent = pct+'%';
+  document.getElementById('score-frac').textContent = qzSession.correct+'/'+total;
+  const msgs = [[80,'太棒了！🌟','繼續保持，你是單字王！'],[60,'不錯喔！😊','再加把勁，很快就能掌握！'],[0,'繼續加油！💪','多複習幾次就會記住的！']];
+  const [,title,sub] = msgs.find(([min]) => pct >= min);
+  document.getElementById('score-msg').textContent = title;
+  document.getElementById('score-sub').textContent = sub;
+}
+
+// ===================== WORD LIST =====================
+function setFilter(el, filter) {
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  wordFilter = filter;
+  renderWordList();
+}
+
+function renderWordList() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase();
+  const prog = loadProg();
+  let list = WORDS;
+  if (q) list = list.filter(w => w.k.includes(q)||w.r.includes(q)||w.m.includes(q)||w.p.includes(q));
+  if (['new','learning','learned'].includes(wordFilter)) {
+    list = list.filter(w => (prog[w.id]?.status||'new') === wordFilter);
+  } else if (['名詞','動詞','形容詞','な形容詞','副詞','接続詞'].includes(wordFilter)) {
+    list = list.filter(w => w.p === wordFilter || (wordFilter==='形容詞' && (w.p==='形容詞'||w.p==='な形容詞')));
+  }
+  const el = document.getElementById('word-list');
+  if (list.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--sub);padding:40px">找不到符合的單字</div>'; return; }
+  el.innerHTML = list.map(w => {
+    const wp = prog[w.id];
+    const status = wp?.status || 'new';
+    const dotClass = {new:'dot-new',learning:'dot-learning',learned:'dot-learned'}[status];
+    return `<div class="word-item" onclick="showWordModal(${w.id})">
+      <div class="word-status-dot ${dotClass}"></div>
+      <div class="word-main">
+        <div class="word-kanji">${w.k}</div>
+        <div class="word-reading">${w.r}</div>
+        <div class="word-meaning">${w.m}</div>
+      </div>
+      <div class="word-pos">${w.p}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===================== WORD MODAL =====================
+function showWordModal(id) {
+  const w = WORDS.find(x => x.id === id);
+  currentModalWord = w;
+  const wp = getWordProg(id);
+  document.getElementById('m-kanji').textContent = w.k;
+  document.getElementById('m-reading').textContent = w.r;
+  document.getElementById('m-meaning').textContent = w.m;
+  const exBtn = document.getElementById('m-speak-ex-btn');
+  if (exBtn) exBtn.style.opacity = w.ex ? '1' : '0.4';
+  const posColors = {'名詞':'#4F46E5','動詞':'#059669','形容詞':'#D97706','な形容詞':'#7C3AED','副詞':'#0891B2','接続詞':'#DC2626','表現':'#6B7280'};
+  const c = posColors[w.p]||'#6B7280';
+  document.getElementById('m-pos').innerHTML = `<span style="background:${c}20;color:${c};padding:4px 12px;border-radius:99px;font-size:13px;font-weight:600">${w.p}</span>`;
+  if (w.ex) {
+    document.getElementById('m-ex').style.display='block';
+    document.getElementById('m-ex-jp').textContent = w.ex;
+    document.getElementById('m-ex-ch').textContent = w.exm;
+  } else { document.getElementById('m-ex').style.display='none'; }
+  const statusLabel = {new:'未學習',learning:'學習中',learned:'已掌握'}[wp.status];
+  document.getElementById('m-status').textContent = statusLabel;
+  document.getElementById('m-reviews').textContent = wp.reviews||0;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('m-interval').textContent = wp.next && wp.next > today ?
+    wp.next.slice(5).replace('-','/') : (wp.next ? '今天' : '—');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalBtn(); }
+function closeModalBtn() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+// ===================== STATS =====================
+function renderStats() {
+  const prog = loadProg();
+  const meta = loadMeta();
+  let nw=0, learning=0, learned=0;
+  let rev=0, cor=0;
+  WORDS.forEach(w => {
+    const wp = prog[w.id];
+    const s = wp?.status||'new';
+    if(s==='new') nw++; else if(s==='learning') learning++; else learned++;
+    rev += wp?.reviews||0; cor += wp?.correct||0;
+  });
+  const total = WORDS.length;
+  const pct = Math.round(learned/total*100);
+  document.getElementById('st-pct').textContent = pct+'%';
+  document.getElementById('st-new').textContent = nw;
+  document.getElementById('st-learning').textContent = learning;
+  document.getElementById('st-learned').textContent = learned;
+  document.getElementById('st-reviews').textContent = rev;
+  document.getElementById('st-acc').textContent = rev>0 ? Math.round(cor/rev*100)+'%' : '—';
+}
+
+function confirmReset() {
+  if (confirm('確定要重置所有學習進度嗎？此操作無法復原。')) {
+    localStorage.removeItem(PROG_KEY);
+    localStorage.removeItem(META_KEY);
+    renderStats();
+    showToast('進度已重置');
+  }
+}
+
+// ===================== TOAST =====================
+function showToast(msg, duration=2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ===================== INIT =====================
+function init() {
+  // register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+  // update streak on load
+  const meta = loadMeta();
+  const today = new Date().toISOString().split('T')[0];
+  if (meta.lastDate && meta.lastDate !== today) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    if (meta.lastDate !== yesterday.toISOString().split('T')[0]) {
+      meta.streak = 0; saveMeta(meta);
+    }
+  }
+  navigate('home');
+}
+
+init();
+</script>
+</body>
+</html>
