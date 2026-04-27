@@ -1600,7 +1600,7 @@ function speak(text, rate = 0.95) {
 }
 function speakFC() {
   const w = fcSession.words[fcSession.idx];
-  if (w) speak(w.k);
+  if (w) speak(w.r || w.k);
 }
 function speakFCEx() {
   const w = fcSession.words[fcSession.idx];
@@ -1609,10 +1609,10 @@ function speakFCEx() {
 }
 function speakQZ() {
   const w = qzSession.words[qzSession.idx];
-  if (w) speak(w.k);
+  if (w) speak(w.r || w.k);
 }
 function speakModal() {
-  if (currentModalWord) speak(currentModalWord.k);
+  if (currentModalWord) speak(currentModalWord.r || currentModalWord.k);
 }
 function speakModalEx() {
   if (currentModalWord && currentModalWord.ex) speak(currentModalWord.ex, 0.85);
