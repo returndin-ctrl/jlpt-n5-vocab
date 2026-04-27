@@ -1587,7 +1587,9 @@ if (window.speechSynthesis) {
   speechSynthesis.addEventListener('voiceschanged', refreshJaVoice);
 }
 
-function speak(text, rate = 0.95) {
+let _currentAudio = null;
+
+function speakWebAPI(text, rate) {
   if (!window.speechSynthesis) { showToast('裝置不支援語音功能'); return; }
   speechSynthesis.cancel();
   if (!_jaVoice) refreshJaVoice();
@@ -1598,9 +1600,22 @@ function speak(text, rate = 0.95) {
   if (_jaVoice) u.voice = _jaVoice;
   speechSynthesis.speak(u);
 }
+
+function speak(text, rate = 0.95) {
+  if (!text) return;
+  if (_currentAudio) { try { _currentAudio.pause(); } catch(e){} _currentAudio = null; }
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  const url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
+  const audio = new Audio(url);
+  audio.playbackRate = rate;
+  audio.preservesPitch = true;
+  _currentAudio = audio;
+  audio.addEventListener('error', () => { if (_currentAudio === audio) { _currentAudio = null; speakWebAPI(text, rate); } });
+  audio.play().catch(() => { if (_currentAudio === audio) { _currentAudio = null; speakWebAPI(text, rate); } });
+}
 function speakFC() {
   const w = fcSession.words[fcSession.idx];
-  if (w) speak(w.r || w.k);
+  if (w) speak(w.k);
 }
 function speakFCEx() {
   const w = fcSession.words[fcSession.idx];
@@ -1609,10 +1624,10 @@ function speakFCEx() {
 }
 function speakQZ() {
   const w = qzSession.words[qzSession.idx];
-  if (w) speak(w.r || w.k);
+  if (w) speak(w.k);
 }
 function speakModal() {
-  if (currentModalWord) speak(currentModalWord.r || currentModalWord.k);
+  if (currentModalWord) speak(currentModalWord.k);
 }
 function speakModalEx() {
   if (currentModalWord && currentModalWord.ex) speak(currentModalWord.ex, 0.85);
