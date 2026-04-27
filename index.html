@@ -1562,17 +1562,40 @@ let qzSession = { words:[], idx:0, correct:0, answered:false };
 let currentModalWord = null;
 
 // ===================== TTS =====================
+let _jaVoice = null;
+function pickJaVoice() {
+  if (!window.speechSynthesis) return null;
+  const voices = speechSynthesis.getVoices();
+  const ja = voices.filter(v => v.lang === 'ja-JP' || v.lang === 'ja_JP' || v.lang.startsWith('ja'));
+  if (ja.length === 0) return null;
+  const prefs = [
+    v => /premium/i.test(v.name),
+    v => /enhanced|neural/i.test(v.name),
+    v => v.localService === false,
+    v => /google|microsoft.*online|nanami|aoi|daichi|naoki|mayu|keita/i.test(v.name),
+    v => /kyoko/i.test(v.name),
+  ];
+  for (const pref of prefs) {
+    const found = ja.find(pref);
+    if (found) return found;
+  }
+  return ja[0];
+}
+function refreshJaVoice() { _jaVoice = pickJaVoice(); }
+if (window.speechSynthesis) {
+  refreshJaVoice();
+  speechSynthesis.addEventListener('voiceschanged', refreshJaVoice);
+}
+
 function speak(text, rate = 0.95) {
   if (!window.speechSynthesis) { showToast('裝置不支援語音功能'); return; }
   speechSynthesis.cancel();
+  if (!_jaVoice) refreshJaVoice();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'ja-JP';
   u.rate = rate;
   u.pitch = 1.0;
-  // pick Japanese voice if available
-  const voices = speechSynthesis.getVoices();
-  const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang.startsWith('ja'));
-  if (jaVoice) u.voice = jaVoice;
+  if (_jaVoice) u.voice = _jaVoice;
   speechSynthesis.speak(u);
 }
 function speakFC() {
