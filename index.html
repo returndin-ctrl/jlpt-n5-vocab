@@ -21,7 +21,7 @@
 }
 html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif}
 body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:none}
-#app{max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+#app{max-width:480px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow-y:auto;position:relative}
 
 /* CONTENT */
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -31,7 +31,9 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
 /* BOTTOM NAV */
 .bnav{display:flex;background:#fff;border-top:none;flex-shrink:0;
   box-shadow:0 -4px 20px rgba(99,102,241,.10);border-radius:24px 24px 0 0;
-  padding:6px 8px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  padding:6px 8px;padding-bottom:max(10px,env(safe-area-inset-bottom));
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;z-index:50}
 .bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   padding:8px 4px;border:none;background:none;color:var(--sub);font-size:10px;
   font-weight:500;cursor:pointer;transition:all .2s;border-radius:14px}
@@ -446,6 +448,23 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
   <button class="btn" style="background:#FEE2E2;color:#DC2626;font-weight:600" onclick="confirmReset()">🗑 重置所有進度</button>
 </div>
 
+<!-- ===== GRAMMAR ===== -->
+<div id="s-grammar" class="screen" style="padding-bottom:80px;display:none">
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="grammar-search" placeholder="搜尋文法或意思..." oninput="renderGrammarList()">
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-gfilter="all" onclick="setGrammarFilter(this,'all')">全部</button>
+    <button class="filter-tab" data-gfilter="助詞" onclick="setGrammarFilter(this,'助詞')">助詞</button>
+    <button class="filter-tab" data-gfilter="動詞" onclick="setGrammarFilter(this,'動詞')">動詞</button>
+    <button class="filter-tab" data-gfilter="形容詞" onclick="setGrammarFilter(this,'形容詞')">形容詞</button>
+    <button class="filter-tab" data-gfilter="句型" onclick="setGrammarFilter(this,'句型')">句型</button>
+    <button class="filter-tab" data-gfilter="疑問" onclick="setGrammarFilter(this,'疑問')">疑問</button>
+  </div>
+  <div id="grammar-list"></div>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bnav" id="bottom-nav">
   <button class="bnav-btn active" id="nav-home" onclick="navigate('home')">
@@ -463,6 +482,10 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
   <button class="bnav-btn" id="nav-words" onclick="navigate('words')">
     <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
     單字
+  </button>
+  <button class="bnav-btn" id="nav-grammar" onclick="navigate('grammar')">
+    <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h10M4 18h16"/><circle cx="19" cy="12" r="2"/></svg></div>
+    文法
   </button>
   <button class="bnav-btn" id="nav-stats" onclick="navigate('stats')">
     <div class="bnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
@@ -499,6 +522,25 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
       <div class="mp"><div class="mp-num" id="m-interval">—</div><div class="mp-lbl">下次複習</div></div>
     </div>
     <button class="btn btn-pri" onclick="closeModalBtn()">關閉</button>
+  </div>
+</div>
+
+<!-- GRAMMAR DETAIL MODAL -->
+<div class="modal-overlay" id="g-modal-overlay" onclick="closeGrammarModal(event)">
+  <div class="modal" id="g-modal-content">
+    <div class="modal-handle"></div>
+    <div class="modal-kanji" id="gm-title"></div>
+    <div class="modal-meaning" id="gm-meaning"></div>
+    <div class="modal-pos" id="gm-cat"></div>
+    <div class="modal-ex" id="gm-exp" style="margin-bottom:12px">
+      <div class="ex-lbl">說明</div>
+      <p id="gm-exp-text"></p>
+    </div>
+    <div class="modal-ex" id="gm-ex" style="display:none">
+      <div class="ex-lbl">例句</div>
+      <div id="gm-ex-list"></div>
+    </div>
+    <button class="btn btn-pri" onclick="closeGrammarModalBtn()">關閉</button>
   </div>
 </div>
 
@@ -582,7 +624,7 @@ const WORDS = [
   // ===== 場所 =====
   {id:67,k:"学校",r:"がっこう",m:"學校",p:"名詞",ex:"学校まで歩いて行きます。",exm:"走路去學校。"},
   {id:68,k:"家",r:"いえ",m:"家、房子",p:"名詞",ex:"家に帰ります。",exm:"回家。"},
-  {id:69,k:"うち",r:"うち",m:"家、自家",p:"名詞",ex:"うちは駅の近くです。",exm:"我家在車站附近。"},
+  {id:69,k:"家",r:"うち",m:"家、自家",p:"名詞",ex:"うちは駅の近くです。",exm:"我家在車站附近。"},
   {id:70,k:"部屋",r:"へや",m:"房間",p:"名詞",ex:"私の部屋は二階です。",exm:"我的房間在二樓。"},
   {id:71,k:"会社",r:"かいしゃ",m:"公司",p:"名詞",ex:"会社まで一時間かかります。",exm:"到公司要一個小時。"},
   {id:72,k:"駅",r:"えき",m:"車站",p:"名詞",ex:"駅で待っています。",exm:"在車站等。"},
@@ -801,7 +843,7 @@ const WORDS = [
   {id:269,k:"親切",r:"しんせつ",m:"親切的",p:"な形容詞",ex:"親切な人です。",exm:"是親切的人。"},
   {id:270,k:"便利",r:"べんり",m:"方便的",p:"な形容詞",ex:"駅は便利です。",exm:"車站很方便。"},
   {id:271,k:"不便",r:"ふべん",m:"不方便的",p:"な形容詞",ex:"ここは不便です。",exm:"這裡不方便。"},
-  {id:272,k:"きれい",r:"きれい",m:"漂亮的、乾淨的",p:"な形容詞",ex:"花がきれいです。",exm:"花很漂亮。"},
+  {id:272,k:"綺麗",r:"きれい",m:"漂亮的、乾淨的",p:"な形容詞",ex:"花がきれいです。",exm:"花很漂亮。"},
   {id:273,k:"好き",r:"すき",m:"喜歡的",p:"な形容詞",ex:"日本料理が好きです。",exm:"喜歡日本料理。"},
   {id:274,k:"嫌い",r:"きらい",m:"討厭的",p:"な形容詞",ex:"虫が嫌いです。",exm:"討厭蟲。"},
   {id:275,k:"上手",r:"じょうず",m:"擅長的",p:"な形容詞",ex:"日本語が上手ですね。",exm:"日語真好。"},
@@ -942,7 +984,7 @@ const WORDS = [
   {id:392,k:"間",r:"あいだ",m:"中間、之間",p:"名詞",ex:"二人の間に座ります。",exm:"坐在兩人之間。"},
   {id:393,k:"近く",r:"ちかく",m:"附近",p:"名詞",ex:"家の近くに公園があります。",exm:"家附近有公園。"},
   {id:394,k:"向こう",r:"むこう",m:"對面、那邊",p:"名詞",ex:"川の向こうに山があります。",exm:"河對面有山。"},
-  {id:395,k:"そば",r:"そば",m:"旁邊",p:"名詞",ex:"駅のそばにあります。",exm:"在車站旁邊。"},
+  {id:395,k:"側",r:"そば",m:"旁邊",p:"名詞",ex:"駅のそばにあります。",exm:"在車站旁邊。"},
   {id:396,k:"角",r:"かど",m:"角落、轉角",p:"名詞",ex:"次の角を曲がります。",exm:"在下個轉角轉彎。"},
   {id:397,k:"東",r:"ひがし",m:"東邊",p:"名詞",ex:"東口で会いましょう。",exm:"東口見吧。"},
   {id:398,k:"西",r:"にし",m:"西邊",p:"名詞",ex:"西の方に空港があります。",exm:"西邊有機場。"},
@@ -1058,8 +1100,8 @@ const WORDS = [
   {id:494,k:"砂糖",r:"さとう",m:"糖",p:"名詞",ex:"コーヒーに砂糖を入れます。",exm:"在咖啡裡加糖。"},
   {id:495,k:"醤油",r:"しょうゆ",m:"醬油",p:"名詞",ex:"醤油をかけます。",exm:"淋醬油。"},
   {id:496,k:"バター",r:"バター",m:"奶油",p:"名詞",ex:"パンにバターを塗ります。",exm:"在麵包上塗奶油。"},
-  {id:497,k:"りんご",r:"りんご",m:"蘋果",p:"名詞",ex:"りんごを食べます。",exm:"吃蘋果。"},
-  {id:498,k:"みかん",r:"みかん",m:"橘子",p:"名詞",ex:"みかんが甘いです。",exm:"橘子很甜。"},
+  {id:497,k:"林檎",r:"りんご",m:"蘋果",p:"名詞",ex:"りんごを食べます。",exm:"吃蘋果。"},
+  {id:498,k:"蜜柑",r:"みかん",m:"橘子",p:"名詞",ex:"みかんが甘いです。",exm:"橘子很甜。"},
   {id:499,k:"バナナ",r:"バナナ",m:"香蕉",p:"名詞",ex:"バナナを買いました。",exm:"買了香蕉。"},
   {id:500,k:"トマト",r:"トマト",m:"番茄",p:"名詞",ex:"トマトサラダを作ります。",exm:"做番茄沙拉。"},
   {id:501,k:"レモン",r:"レモン",m:"檸檬",p:"名詞",ex:"レモンは酸っぱいです。",exm:"檸檬很酸。"},
@@ -1225,7 +1267,7 @@ const WORDS = [
   {id:651,k:"さっき",r:"さっき",m:"剛才",p:"副詞",ex:"さっき電話がありました。",exm:"剛才有來電。"},
   {id:652,k:"大体",r:"だいたい",m:"大致、大概",p:"副詞",ex:"大体分かりました。",exm:"大致明白了。"},
   {id:653,k:"ほとんど",r:"ほとんど",m:"幾乎",p:"副詞",ex:"宿題はほとんど終わりました。",exm:"作業幾乎做完了。"},
-  {id:654,k:"まっすぐ",r:"まっすぐ",m:"直直地",p:"副詞",ex:"まっすぐ行ってください。",exm:"請直走。"},
+  {id:654,k:"真っ直ぐ",r:"まっすぐ",m:"直直地",p:"副詞",ex:"まっすぐ行ってください。",exm:"請直走。"},
   {id:655,k:"初めて",r:"はじめて",m:"第一次",p:"副詞",ex:"初めて寿司を食べました。",exm:"第一次吃壽司。"},
 
   // ===== 接續詞 =====
@@ -1303,6 +1345,73 @@ const WORDS = [
   {id:713,k:"船",r:"ふね",m:"船",p:"名詞",ex:"船で島へ行きます。",exm:"搭船去島上。"},
   {id:714,k:"空港",r:"くうこう",m:"機場",p:"名詞",ex:"空港まで送ります。",exm:"送你到機場。"},
   {id:715,k:"駐車場",r:"ちゅうしゃじょう",m:"停車場",p:"名詞",ex:"駐車場に車を止めます。",exm:"把車停到停車場。"},
+];
+
+// ===================== GRAMMAR DATA =====================
+const GRAMMAR = [
+  // ===== 助詞 =====
+  {id:1,cat:'助詞',t:'は',m:'主題助詞',exp:'提示句子的主題。讀作 wa（不是 ha）。後接述部，相當於「～就～」「至於～」。',ex:[{j:'私は学生です。',c:'我是學生。'},{j:'今日は寒いです。',c:'今天很冷。'}]},
+  {id:2,cat:'助詞',t:'が',m:'主格／強調',exp:'標示動作主或新資訊的主語。回答疑問句、強調主體時使用。「が」也接「好き／嫌い／ほしい／ある／いる／上手／下手」等。',ex:[{j:'雨が降っています。',c:'正在下雨。'},{j:'私が行きます。',c:'是我去。'}]},
+  {id:3,cat:'助詞',t:'を',m:'動作對象（受詞）',exp:'標示他動詞的直接受詞，也表移動所經之處（公園を散歩する）。',ex:[{j:'本を読みます。',c:'讀書。'},{j:'公園を歩きます。',c:'在公園裡走。'}]},
+  {id:4,cat:'助詞',t:'に',m:'時間／方向／對象',exp:'時點（七時に起きる）、目的地（学校に行く）、存在地（部屋に机がある）、間接對象（友達に手紙を書く）等。',ex:[{j:'七時に起きます。',c:'七點起床。'},{j:'友達に電話します。',c:'打電話給朋友。'}]},
+  {id:5,cat:'助詞',t:'で',m:'地點／手段／方式',exp:'動作發生的場所（教室で勉強する）、交通工具或手段（バスで行く／日本語で話す）、範圍（クラスで一番）。',ex:[{j:'図書館で勉強します。',c:'在圖書館讀書。'},{j:'バスで行きます。',c:'搭公車去。'}]},
+  {id:6,cat:'助詞',t:'へ',m:'方向',exp:'移動的方向，與「に」相近但更強調過程方向。讀作 e（不是 he）。',ex:[{j:'東京へ行きます。',c:'去東京。'},{j:'家へ帰ります。',c:'回家。'}]},
+  {id:7,cat:'助詞',t:'と',m:'共同／並列',exp:'與某人一起（友達と話す）、名詞並列（りんごとみかん）、引用內容（「はい」と言った）。',ex:[{j:'友達と映画を見ます。',c:'和朋友看電影。'},{j:'パンと牛乳を買いました。',c:'買了麵包和牛奶。'}]},
+  {id:8,cat:'助詞',t:'も',m:'也／都',exp:'追加同類事物，相當於「也」。連用時表「都～」（誰も来ない）。',ex:[{j:'私も学生です。',c:'我也是學生。'},{j:'何も食べません。',c:'什麼都不吃。'}]},
+  {id:9,cat:'助詞',t:'から',m:'起點／原因',exp:'時間或地點的起點（九時から）；接於句尾表原因（寒いから、コートを着る）。',ex:[{j:'九時から授業です。',c:'九點開始上課。'},{j:'忙しいから、行きません。',c:'因為忙，所以不去。'}]},
+  {id:10,cat:'助詞',t:'まで',m:'終點／到～為止',exp:'時間或地點的終點。常與「から」搭配：「～から～まで」。',ex:[{j:'五時まで働きます。',c:'工作到五點。'},{j:'駅まで歩きます。',c:'走到車站。'}]},
+  {id:11,cat:'助詞',t:'より',m:'比較',exp:'比較的基準。常用句型「AよりBのほうが～」表示「比起A，B更～」。',ex:[{j:'犬より猫が好きです。',c:'比起狗更喜歡貓。'},{j:'今日は昨日より暑いです。',c:'今天比昨天熱。'}]},
+  {id:12,cat:'助詞',t:'や',m:'列舉（部分）',exp:'列舉具代表性的兩三項，含「等等」之意。比「と」更鬆散。常搭配「など」。',ex:[{j:'りんごやみかんを買います。',c:'買蘋果、橘子等。'},{j:'机の上に本やペンがあります。',c:'桌上有書和筆等。'}]},
+  {id:13,cat:'助詞',t:'か',m:'疑問助詞',exp:'句尾的疑問語氣詞，相當於中文的「嗎？」。也可表選擇（コーヒーか紅茶）。',ex:[{j:'学生ですか。',c:'是學生嗎？'},{j:'コーヒーか紅茶を飲みます。',c:'喝咖啡或紅茶。'}]},
+  {id:14,cat:'助詞',t:'ね',m:'確認／徵求同意',exp:'句尾語氣詞，向對方尋求認同，相當於「對吧／是吧」。',ex:[{j:'いい天気ですね。',c:'天氣真好啊。'},{j:'おいしいですね。',c:'很好吃對吧。'}]},
+  {id:15,cat:'助詞',t:'よ',m:'告知／強調',exp:'告訴對方對方不知道的訊息，或強調自己的主張。',ex:[{j:'明日は休みですよ。',c:'明天是休假喔。'},{j:'これ、おいしいですよ。',c:'這個很好吃喔。'}]},
+  {id:16,cat:'助詞',t:'の',m:'所有／修飾',exp:'連接名詞表所有、所屬、屬性（私の本／日本の車）。也可代名詞化（赤いのがいい）。',ex:[{j:'私の本です。',c:'是我的書。'},{j:'日本語の先生',c:'日語老師'}]},
+
+  // ===== 動詞 =====
+  {id:17,cat:'動詞',t:'～ます',m:'禮貌現在式',exp:'動詞ます形，表禮貌的現在或未來、習慣動作。',ex:[{j:'毎日コーヒーを飲みます。',c:'每天喝咖啡。'},{j:'明日学校へ行きます。',c:'明天去學校。'}]},
+  {id:18,cat:'動詞',t:'～ません',m:'禮貌否定',exp:'ます形否定，表「不～」。',ex:[{j:'お酒を飲みません。',c:'不喝酒。'},{j:'肉を食べません。',c:'不吃肉。'}]},
+  {id:19,cat:'動詞',t:'～ました',m:'禮貌過去',exp:'ます形過去，表「～了」。',ex:[{j:'昨日映画を見ました。',c:'昨天看了電影。'},{j:'もう食べました。',c:'已經吃了。'}]},
+  {id:20,cat:'動詞',t:'～ませんでした',m:'禮貌過去否定',exp:'ます形過去否定，表「沒有～」。',ex:[{j:'昨日勉強しませんでした。',c:'昨天沒讀書。'},{j:'朝ご飯を食べませんでした。',c:'沒吃早餐。'}]},
+  {id:21,cat:'動詞',t:'～ない',m:'普通形否定',exp:'動詞普通形否定，用於朋友、家人或寫日記。一類動詞 u→a+ない；二類去る加ない；する→しない、来る→こない。',ex:[{j:'今日は行かない。',c:'今天不去。'},{j:'肉を食べない。',c:'不吃肉。'}]},
+  {id:22,cat:'動詞',t:'～た',m:'普通形過去',exp:'動詞普通形過去，て形的て換成た。',ex:[{j:'昨日映画を見た。',c:'昨天看了電影。'},{j:'もう食べた。',c:'已經吃了。'}]},
+  {id:23,cat:'動詞',t:'～て形',m:'動詞て形',exp:'動詞中止形，連接後續動作或請求、進行式等。一類：う／つ／る→って，ぬ／ぶ／む→んで，く→いて，ぐ→いで，す→して。二類：去る加て。する→して，来る→きて。',ex:[{j:'朝起きて、顔を洗います。',c:'早上起床後洗臉。'},{j:'本を読んで、寝ます。',c:'看完書後睡覺。'}]},
+  {id:24,cat:'動詞',t:'～ている',m:'進行／狀態',exp:'て形+いる。表動作進行中（食べている＝正在吃）或結果狀態（結婚している＝已婚）。',ex:[{j:'今、本を読んでいます。',c:'現在正在看書。'},{j:'兄は結婚しています。',c:'哥哥已經結婚了。'}]},
+  {id:25,cat:'動詞',t:'～てください',m:'請～',exp:'て形+ください。表禮貌的請求或指示。',ex:[{j:'ちょっと待ってください。',c:'請等一下。'},{j:'ここに名前を書いてください。',c:'請在這裡寫上名字。'}]},
+  {id:26,cat:'動詞',t:'～たい',m:'想要做～',exp:'ます形語幹+たい。表第一人稱的願望，活用同い形容詞。對象助詞可用「を」或「が」。',ex:[{j:'水が飲みたいです。',c:'想喝水。'},{j:'日本へ行きたいです。',c:'想去日本。'}]},
+  {id:27,cat:'動詞',t:'～ましょう',m:'邀約／一起～吧',exp:'ます形語幹+ましょう。表邀約對方一起做某事。「～ましょうか」表提議或詢問。',ex:[{j:'一緒に行きましょう。',c:'一起去吧。'},{j:'ご飯を食べましょうか。',c:'要不要一起吃飯？'}]},
+  {id:28,cat:'動詞',t:'～たり～たりする',m:'列舉動作',exp:'動詞た形+り～た形+り+する。從幾個動作中舉例，表「又～又～」。',ex:[{j:'休みの日は本を読んだり、映画を見たりします。',c:'放假時看看書、看看電影。'},{j:'土曜日は買い物したり、洗濯したりしました。',c:'禮拜六買了東西、洗了衣服等。'}]},
+
+  // ===== 形容詞 =====
+  {id:29,cat:'形容詞',t:'い形容詞＋です',m:'い形現在肯定',exp:'い形容詞直接接「です」即為禮貌現在肯定。注意「いい」是例外（變化用「よい」）。',ex:[{j:'富士山は高いです。',c:'富士山很高。'},{j:'このケーキはおいしいです。',c:'這個蛋糕很好吃。'}]},
+  {id:30,cat:'形容詞',t:'～くないです',m:'い形否定',exp:'去掉い加くないです（或くありません）。「いい」→「よくないです」。',ex:[{j:'今日は寒くないです。',c:'今天不冷。'},{j:'この映画はおもしろくないです。',c:'這部電影不有趣。'}]},
+  {id:31,cat:'形容詞',t:'～かったです',m:'い形過去',exp:'去掉い加かったです。否定過去：くなかったです。',ex:[{j:'昨日は暑かったです。',c:'昨天很熱。'},{j:'映画はおもしろくなかったです。',c:'電影不有趣。'}]},
+  {id:32,cat:'形容詞',t:'な形容詞＋です',m:'な形肯定',exp:'な形容詞接です即為肯定。否定：～じゃないです／ではありません。過去：～でした。',ex:[{j:'この部屋は静かです。',c:'這個房間很安靜。'},{j:'昨日は元気でした。',c:'昨天很有精神。'}]},
+  {id:33,cat:'形容詞',t:'な形＋な＋名詞',m:'な形修飾名詞',exp:'な形容詞修飾名詞時要加「な」。い形容詞直接接名詞（高い山）。',ex:[{j:'静かな部屋',c:'安靜的房間'},{j:'きれいな花',c:'漂亮的花'}]},
+
+  // ===== 句型 =====
+  {id:34,cat:'句型',t:'AはBです',m:'A 是 B',exp:'最基本的判斷句，A 是主題、B 是述部。否定：AはBじゃないです／ではありません。',ex:[{j:'私は学生です。',c:'我是學生。'},{j:'これは本ではありません。',c:'這不是書。'}]},
+  {id:35,cat:'句型',t:'～があります',m:'有（無生命物）',exp:'場所＋に＋物＋があります。表存在無生命的東西。',ex:[{j:'机の上に本があります。',c:'桌上有書。'},{j:'公園に花があります。',c:'公園裡有花。'}]},
+  {id:36,cat:'句型',t:'～がいます',m:'有（人／動物）',exp:'場所＋に＋人／動物＋がいます。表存在有生命的對象。',ex:[{j:'部屋に犬がいます。',c:'房間裡有狗。'},{j:'教室に学生がいます。',c:'教室裡有學生。'}]},
+  {id:37,cat:'句型',t:'AよりBのほうが～',m:'B 比 A 更～',exp:'比較句型，比起 A，B 更～。回答時可省略 Aより。',ex:[{j:'犬より猫のほうがかわいいです。',c:'比起狗，貓更可愛。'},{j:'バスより電車のほうが速いです。',c:'比起公車，電車更快。'}]},
+  {id:38,cat:'句型',t:'AとBとどちらが～',m:'A 和 B 哪個更～',exp:'兩者比較的疑問句。回答用「Bのほうが～です」。',ex:[{j:'コーヒーと紅茶とどちらが好きですか。',c:'咖啡和紅茶你喜歡哪個？'},{j:'夏と冬とどちらが好きですか。',c:'夏天和冬天喜歡哪個？'}]},
+  {id:39,cat:'句型',t:'～が好き／嫌い',m:'喜歡／討厭～',exp:'對象用助詞「が」。「好き」「嫌い」是な形容詞。',ex:[{j:'音楽が好きです。',c:'喜歡音樂。'},{j:'納豆が嫌いです。',c:'討厭納豆。'}]},
+  {id:40,cat:'句型',t:'～がほしい',m:'想要～（物）',exp:'表第一人稱想要某物。對象用「が」。活用同い形容詞。對他人時不可用，要用「ほしがっている」。',ex:[{j:'新しい車がほしいです。',c:'想要新車。'},{j:'時間がほしいです。',c:'想要時間。'}]},
+  {id:41,cat:'句型',t:'～ことができる',m:'能夠／可以～',exp:'動詞辭書形+ことができる。表能力或可能。也可省略：「日本語ができる」。',ex:[{j:'日本語を話すことができます。',c:'會說日語。'},{j:'ピアノを弾くことができます。',c:'會彈鋼琴。'}]},
+  {id:42,cat:'句型',t:'～でしょう',m:'推測（吧）',exp:'表推測或委婉的判斷，相當於「大概～吧」。語調上揚時表確認。',ex:[{j:'明日は雨でしょう。',c:'明天大概會下雨吧。'},{j:'彼は学生でしょう。',c:'他應該是學生吧。'}]},
+  {id:43,cat:'句型',t:'～から（原因）',m:'因為～',exp:'接於前句句尾，表主觀原因。前接普通形或丁寧形。',ex:[{j:'寒いから、コートを着ます。',c:'因為冷，所以穿外套。'},{j:'忙しいから、行きません。',c:'因為忙，所以不去。'}]},
+  {id:44,cat:'句型',t:'～が（轉折）',m:'但是～',exp:'前後句轉折，相當於「但是」。比「でも」更書面。',ex:[{j:'高いですが、おいしいです。',c:'雖然貴，但很好吃。'},{j:'勉強しましたが、わかりませんでした。',c:'雖然讀了書，但沒看懂。'}]},
+  {id:45,cat:'句型',t:'もう／まだ',m:'已經／還沒',exp:'もう＋肯定＝已經；まだ＋否定（～ていません）＝還沒。注意「まだ」回答未完成事項用「～ていません」。',ex:[{j:'もう食べました。',c:'已經吃了。'},{j:'まだ食べていません。',c:'還沒吃。'}]},
+
+  // ===== 疑問 =====
+  {id:46,cat:'疑問',t:'何／なに',m:'什麼',exp:'問事物。後接ですか為「是什麼」。「何」讀音依後接字而異（なに／なん）。',ex:[{j:'これは何ですか。',c:'這是什麼？'},{j:'何を食べますか。',c:'要吃什麼？'}]},
+  {id:47,cat:'疑問',t:'誰／だれ',m:'誰',exp:'問人。更禮貌的說法是「どなた」。',ex:[{j:'あの人は誰ですか。',c:'那個人是誰？'},{j:'誰と行きますか。',c:'和誰去？'}]},
+  {id:48,cat:'疑問',t:'どこ',m:'哪裡',exp:'問地點。「どちら」較禮貌。',ex:[{j:'トイレはどこですか。',c:'廁所在哪裡？'},{j:'どこへ行きますか。',c:'去哪裡？'}]},
+  {id:49,cat:'疑問',t:'いつ',m:'什麼時候',exp:'問時間。後不接助詞「に」。',ex:[{j:'誕生日はいつですか。',c:'生日是什麼時候？'},{j:'いつ来ますか。',c:'什麼時候來？'}]},
+  {id:50,cat:'疑問',t:'どう／いかが',m:'如何／怎麼樣',exp:'問狀態、感想或徵求意見。「いかが」較禮貌。',ex:[{j:'今日はどうですか。',c:'今天怎麼樣？'},{j:'コーヒーはいかがですか。',c:'要不要來杯咖啡？'}]},
+  {id:51,cat:'疑問',t:'どうして／なぜ',m:'為什麼',exp:'問原因。回答用「～から／～ので」。',ex:[{j:'どうして遅れましたか。',c:'為什麼遲到？'},{j:'なぜ食べませんか。',c:'為什麼不吃？'}]},
+  {id:52,cat:'疑問',t:'いくら',m:'多少錢',exp:'問價格、數量、程度。',ex:[{j:'これはいくらですか。',c:'這個多少錢？'},{j:'駅までいくらかかりますか。',c:'到車站要多少錢？'}]},
+  {id:53,cat:'疑問',t:'いくつ',m:'幾個／幾歲',exp:'問東西的個數，或委婉問年齡（「おいくつ」更禮貌）。',ex:[{j:'りんごはいくつありますか。',c:'有幾個蘋果？'},{j:'おいくつですか。',c:'您幾歲？'}]},
+  {id:54,cat:'疑問',t:'どの／どれ',m:'哪個',exp:'從三個以上中問哪個。「どの＋名詞」修飾名詞用，「どれ」單獨使用。兩個之中要用「どちら」。',ex:[{j:'どれが好きですか。',c:'喜歡哪個？'},{j:'どの本があなたのですか。',c:'哪本書是你的？'}]},
 ];
 
 // ===================== SRS & PROGRESS =====================
@@ -1428,6 +1537,7 @@ function navigate(screen) {
   document.getElementById('bottom-nav').style.display = 'flex';
   if (screen === 'home') updateHome();
   if (screen === 'words') renderWordList();
+  if (screen === 'grammar') renderGrammarList();
   if (screen === 'stats') renderStats();
 }
 
@@ -1500,8 +1610,10 @@ function loadFCCard() {
   document.getElementById('fc-pos-front').textContent = w.p;
   document.getElementById('fc-kanji').textContent = w.k;
   document.getElementById('fc-reading').textContent = w.r;
+  document.getElementById('fc-reading').style.display = (w.k === w.r) ? 'none' : 'block';
   document.getElementById('bc-kanji').textContent = w.k;
   document.getElementById('bc-reading').textContent = w.r;
+  document.getElementById('bc-reading').style.display = (w.k === w.r) ? 'none' : 'block';
   document.getElementById('bc-meaning').textContent = w.m;
   document.getElementById('bc-pos').textContent = w.p;
   const exEl = document.getElementById('bc-ex');
@@ -1637,11 +1749,12 @@ function renderWordList() {
     const wp = prog[w.id];
     const status = wp?.status || 'new';
     const dotClass = {new:'dot-new',learning:'dot-learning',learned:'dot-learned'}[status];
+    const readingHtml = (w.k === w.r) ? '' : `<div class="word-reading">${w.r}</div>`;
     return `<div class="word-item" onclick="showWordModal(${w.id})">
       <div class="word-status-dot ${dotClass}"></div>
       <div class="word-main">
         <div class="word-kanji">${w.k}</div>
-        <div class="word-reading">${w.r}</div>
+        ${readingHtml}
         <div class="word-meaning">${w.m}</div>
       </div>
       <div class="word-pos">${w.p}</div>
@@ -1656,6 +1769,7 @@ function showWordModal(id) {
   const wp = getWordProg(id);
   document.getElementById('m-kanji').textContent = w.k;
   document.getElementById('m-reading').textContent = w.r;
+  document.getElementById('m-reading').style.display = (w.k === w.r) ? 'none' : 'block';
   document.getElementById('m-meaning').textContent = w.m;
   const exBtn = document.getElementById('m-speak-ex-btn');
   if (exBtn) exBtn.style.opacity = w.ex ? '1' : '0.4';
@@ -1678,6 +1792,65 @@ function showWordModal(id) {
 
 function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalBtn(); }
 function closeModalBtn() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+// ===================== GRAMMAR =====================
+let grammarFilter = 'all';
+
+function setGrammarFilter(el, filter) {
+  document.querySelectorAll('[data-gfilter]').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  grammarFilter = filter;
+  renderGrammarList();
+}
+
+function renderGrammarList() {
+  const q = (document.getElementById('grammar-search')?.value || '').trim().toLowerCase();
+  let list = GRAMMAR;
+  if (grammarFilter !== 'all') list = list.filter(g => g.cat === grammarFilter);
+  if (q) {
+    list = list.filter(g =>
+      g.t.toLowerCase().includes(q) ||
+      g.m.toLowerCase().includes(q) ||
+      g.exp.toLowerCase().includes(q)
+    );
+  }
+  const el = document.getElementById('grammar-list');
+  if (list.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--sub);padding:40px">找不到符合的文法</div>'; return; }
+  const catColors = {'助詞':'#4F46E5','動詞':'#059669','形容詞':'#D97706','句型':'#7C3AED','疑問':'#DC2626'};
+  el.innerHTML = list.map(g => {
+    const c = catColors[g.cat] || '#6B7280';
+    return `<div class="word-item" onclick="showGrammarModal(${g.id})">
+      <div class="word-main">
+        <div class="word-kanji">${g.t}</div>
+        <div class="word-meaning">${g.m}</div>
+      </div>
+      <div class="word-pos" style="background:${c}20;color:${c}">${g.cat}</div>
+    </div>`;
+  }).join('');
+}
+
+function showGrammarModal(id) {
+  const g = GRAMMAR.find(x => x.id === id);
+  if (!g) return;
+  document.getElementById('gm-title').textContent = g.t;
+  document.getElementById('gm-meaning').textContent = g.m;
+  const catColors = {'助詞':'#4F46E5','動詞':'#059669','形容詞':'#D97706','句型':'#7C3AED','疑問':'#DC2626'};
+  const c = catColors[g.cat] || '#6B7280';
+  document.getElementById('gm-cat').innerHTML = `<span style="background:${c}20;color:${c};padding:4px 12px;border-radius:99px;font-size:13px;font-weight:600">${g.cat}</span>`;
+  document.getElementById('gm-exp-text').textContent = g.exp;
+  if (g.ex && g.ex.length) {
+    document.getElementById('gm-ex').style.display = 'block';
+    document.getElementById('gm-ex-list').innerHTML = g.ex.map(e =>
+      `<div style="margin-bottom:10px"><p style="font-size:14px;line-height:1.7">${e.j}</p><p style="color:var(--sub);font-size:13px;margin-top:2px">${e.c}</p></div>`
+    ).join('');
+  } else {
+    document.getElementById('gm-ex').style.display = 'none';
+  }
+  document.getElementById('g-modal-overlay').classList.add('open');
+}
+
+function closeGrammarModal(e) { if (e.target === document.getElementById('g-modal-overlay')) closeGrammarModalBtn(); }
+function closeGrammarModalBtn() { document.getElementById('g-modal-overlay').classList.remove('open'); }
 
 // ===================== STATS =====================
 function renderStats() {

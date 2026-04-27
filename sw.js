@@ -1,4 +1,4 @@
-const CACHE = 'n5-vocab-v1';
+const CACHE = 'n5-vocab-v4';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
