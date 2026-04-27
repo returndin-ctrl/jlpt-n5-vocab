@@ -450,6 +450,10 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
 
 <!-- ===== GRAMMAR ===== -->
 <div id="s-grammar" class="screen" style="padding-bottom:80px;display:none">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn btn-pri" style="margin:0;flex:1;padding:14px;font-size:15px" onclick="startGrammarFlashcard()">📚 文法閃卡</button>
+    <button class="btn btn-grn" style="margin:0;flex:1;padding:14px;font-size:15px" onclick="startGrammarQuiz()">🎯 文法測驗</button>
+  </div>
   <div class="search-bar">
     <span class="search-icon">🔍</span>
     <input type="search" id="grammar-search" placeholder="搜尋文法或意思..." oninput="renderGrammarList()">
@@ -463,6 +467,72 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
     <button class="filter-tab" data-gfilter="疑問" onclick="setGrammarFilter(this,'疑問')">疑問</button>
   </div>
   <div id="grammar-list"></div>
+</div>
+
+<!-- ===== GRAMMAR FLASHCARD ===== -->
+<div id="s-g-flashcard" class="screen" style="padding:0;display:none;flex-direction:column;height:100%">
+  <div class="fc-hdr">
+    <button class="fc-close" onclick="exitGrammarStudy()">✕</button>
+    <h2>文法閃卡</h2>
+    <span id="g-fc-counter" style="font-size:14px">0/0</span>
+  </div>
+  <div class="fc-prog"><div class="fc-prog-fill" id="g-fc-prog" style="width:0%"></div></div>
+  <div id="g-fc-session-body" style="flex:1;display:flex;flex-direction:column;padding:18px">
+    <div class="fc-body" style="flex:1">
+      <div class="flip-card" style="height:400px" onclick="flipGCard()">
+        <div class="flip-inner" id="g-flip-inner">
+          <div class="flip-front" style="padding:30px 20px;justify-content:center">
+            <div id="g-fc-cat" style="background:#fff;padding:5px 14px;border-radius:99px;font-size:13px;font-weight:700;display:inline-block;align-self:center;margin-bottom:18px;letter-spacing:1px">助詞</div>
+            <div style="font-size:44px;font-weight:800;text-align:center;color:#fff;margin:18px 0;line-height:1.3;text-shadow:0 2px 8px rgba(0,0,0,.15)" id="g-fc-pattern">は</div>
+            <div class="fc-hint" style="margin-top:auto;color:rgba(255,255,255,.85)">👆 點擊翻轉看意思</div>
+          </div>
+          <div class="flip-back" style="padding:22px 20px;overflow-y:auto;align-items:stretch;justify-content:flex-start">
+            <div style="text-align:center;font-size:28px;font-weight:800;color:var(--pri);margin-bottom:6px" id="g-bc-pattern">は</div>
+            <div style="text-align:center;font-size:18px;font-weight:700;margin-bottom:12px" id="g-bc-meaning"></div>
+            <div style="font-size:13px;line-height:1.7;color:var(--txt);background:var(--bg);padding:12px;border-radius:10px;margin-bottom:12px" id="g-bc-exp"></div>
+            <div id="g-bc-ex" style="font-size:13px;line-height:1.65"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-pri" style="margin-top:12px;margin-bottom:0" onclick="nextGCard()">下一題 →</button>
+  </div>
+  <div class="fc-done" id="g-fc-done" style="display:none">
+    <div style="font-size:72px">🎉</div>
+    <h2>文法瀏覽完成！</h2>
+    <p style="color:var(--sub);margin-top:6px">已看完所有文法</p>
+    <button class="btn btn-pri" style="margin-top:14px" onclick="exitGrammarStudy()">返回</button>
+    <button class="btn btn-sec" onclick="startGrammarFlashcard()">再來一輪</button>
+  </div>
+</div>
+
+<!-- ===== GRAMMAR QUIZ ===== -->
+<div id="s-g-quiz" class="screen" style="padding:0;display:none;flex-direction:column;height:100%">
+  <div class="qz-hdr">
+    <button class="fc-close" onclick="exitGrammarStudy()">✕</button>
+    <h2>文法測驗</h2>
+    <span id="g-qz-counter" style="font-size:14px">0/0</span>
+  </div>
+  <div class="qz-prog"><div class="qz-prog-fill" id="g-qz-prog" style="width:0%"></div></div>
+  <div id="g-qz-body" class="qz-body" style="padding:20px">
+    <div class="qz-question" style="text-align:left">
+      <div class="qz-q-lbl" style="text-align:center;margin-bottom:12px">填入最適合的文法</div>
+      <div id="g-qz-sentence" style="font-size:17px;line-height:1.85;background:var(--card);padding:14px 16px;border-radius:14px;border:1.5px solid var(--bdr);margin-bottom:6px"></div>
+      <div id="g-qz-translation" style="font-size:13px;color:var(--sub);padding:0 4px;margin-bottom:14px"></div>
+    </div>
+    <div id="g-qz-choices"></div>
+    <div id="g-qz-feedback" style="display:none;margin-top:14px;padding:12px;border-radius:12px;font-size:13px;line-height:1.6"></div>
+  </div>
+  <div id="g-qz-score" class="qz-score" style="display:none">
+    <div class="score-circle">
+      <div class="score-num" id="g-score-pct">0%</div>
+      <div class="score-tot" id="g-score-frac">0/0</div>
+    </div>
+    <h2 id="g-score-msg">測驗結束！</h2>
+    <p id="g-score-sub" style="color:var(--sub);margin-bottom:20px"></p>
+    <button class="btn btn-pri" onclick="startGrammarQuiz()">再來一次</button>
+    <button class="btn btn-sec" onclick="exitGrammarStudy()">返回</button>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -1851,6 +1921,190 @@ function showGrammarModal(id) {
 
 function closeGrammarModal(e) { if (e.target === document.getElementById('g-modal-overlay')) closeGrammarModalBtn(); }
 function closeGrammarModalBtn() { document.getElementById('g-modal-overlay').classList.remove('open'); }
+
+// ===================== GRAMMAR FLASHCARD =====================
+let gFcSession = { items: [], idx: 0, flipped: false };
+
+function startGrammarFlashcard() {
+  const list = [...GRAMMAR];
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  gFcSession = { items: list, idx: 0, flipped: false };
+  document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+  const s = document.getElementById('s-g-flashcard');
+  s.style.display = 'flex';
+  s.classList.add('active');
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('g-fc-session-body').style.display = 'flex';
+  document.getElementById('g-fc-done').style.display = 'none';
+  loadGCard();
+}
+
+function loadGCard() {
+  if (gFcSession.idx >= gFcSession.items.length) { showGFCDone(); return; }
+  const g = gFcSession.items[gFcSession.idx];
+  document.getElementById('g-fc-counter').textContent = (gFcSession.idx+1)+'/'+gFcSession.items.length;
+  document.getElementById('g-fc-prog').style.width = ((gFcSession.idx+1)/gFcSession.items.length*100)+'%';
+  const catColors = {'助詞':'#4F46E5','動詞':'#059669','形容詞':'#D97706','句型':'#7C3AED','疑問':'#DC2626'};
+  const c = catColors[g.cat] || '#6B7280';
+  const catEl = document.getElementById('g-fc-cat');
+  catEl.textContent = g.cat;
+  catEl.style.background = '#fff';
+  catEl.style.color = c;
+  document.getElementById('g-fc-pattern').textContent = g.t;
+  document.getElementById('g-bc-pattern').textContent = g.t;
+  document.getElementById('g-bc-meaning').textContent = g.m;
+  document.getElementById('g-bc-exp').textContent = g.exp;
+  document.getElementById('g-bc-ex').innerHTML = (g.ex || []).map(e =>
+    `<div style="margin-bottom:8px;padding:8px 10px;background:var(--bg);border-radius:8px"><p>${e.j}</p><p style="color:var(--sub);font-size:12px;margin-top:2px">${e.c}</p></div>`
+  ).join('');
+  document.getElementById('g-flip-inner').classList.remove('flipped');
+  gFcSession.flipped = false;
+}
+
+function flipGCard() {
+  const inner = document.getElementById('g-flip-inner');
+  gFcSession.flipped = !gFcSession.flipped;
+  inner.classList.toggle('flipped');
+}
+
+function nextGCard() {
+  gFcSession.idx++;
+  loadGCard();
+}
+
+function showGFCDone() {
+  document.getElementById('g-fc-session-body').style.display = 'none';
+  document.getElementById('g-fc-done').style.display = 'flex';
+}
+
+function exitGrammarStudy() {
+  document.getElementById('s-g-flashcard').style.display = 'none';
+  document.getElementById('s-g-quiz').style.display = 'none';
+  navigate('grammar');
+}
+
+// ===================== GRAMMAR QUIZ =====================
+let gQuizSession = { items: [], idx: 0, score: 0 };
+
+function cleanPattern(t) {
+  return t
+    .replace(/～/g, '')
+    .replace(/[／/].*$/, '')
+    .replace(/[（(].*?[）)]/g, '')
+    .trim();
+}
+
+function buildQuizQuestion(g) {
+  const cleaned = cleanPattern(g.t);
+  if (cleaned.length < 2) return null;
+  for (const ex of (g.ex || [])) {
+    const idx = ex.j.indexOf(cleaned);
+    if (idx >= 0) {
+      const blanked = ex.j.slice(0, idx) + '＿＿' + ex.j.slice(idx + cleaned.length);
+      return { sentence: blanked, translation: ex.c, answer: cleaned, fullPattern: g.t, explanation: g.exp, meaning: g.m, cat: g.cat };
+    }
+  }
+  return null;
+}
+
+function startGrammarQuiz() {
+  const candidates = [];
+  for (const g of GRAMMAR) {
+    const q = buildQuizQuestion(g);
+    if (q) candidates.push(q);
+  }
+  if (candidates.length < 4) { alert('題目不足'); return; }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  const items = candidates.slice(0, 10);
+  gQuizSession = { items, idx: 0, score: 0, answersPool: candidates };
+  document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('active'); });
+  const s = document.getElementById('s-g-quiz');
+  s.style.display = 'flex';
+  s.classList.add('active');
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('g-qz-body').style.display = 'block';
+  document.getElementById('g-qz-score').style.display = 'none';
+  loadGQuiz();
+}
+
+function loadGQuiz() {
+  if (gQuizSession.idx >= gQuizSession.items.length) { showGQScore(); return; }
+  const q = gQuizSession.items[gQuizSession.idx];
+  document.getElementById('g-qz-counter').textContent = (gQuizSession.idx+1)+'/'+gQuizSession.items.length;
+  document.getElementById('g-qz-prog').style.width = ((gQuizSession.idx+1)/gQuizSession.items.length*100)+'%';
+  document.getElementById('g-qz-sentence').textContent = q.sentence;
+  document.getElementById('g-qz-translation').textContent = q.translation;
+  document.getElementById('g-qz-feedback').style.display = 'none';
+
+  const distractorPool = gQuizSession.answersPool.filter(x => x.answer !== q.answer);
+  const seen = new Set([q.answer]);
+  const distractors = [];
+  for (let i = distractorPool.length - 1; i > 0 && distractors.length < 3; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [distractorPool[i], distractorPool[j]] = [distractorPool[j], distractorPool[i]];
+    if (!seen.has(distractorPool[i].answer)) {
+      seen.add(distractorPool[i].answer);
+      distractors.push(distractorPool[i].answer);
+    }
+  }
+  const choices = [q.answer, ...distractors];
+  for (let i = choices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choices[i], choices[j]] = [choices[j], choices[i]];
+  }
+
+  const labels = ['A','B','C','D'];
+  document.getElementById('g-qz-choices').innerHTML = choices.map((c, i) =>
+    `<button class="qz-choice" data-ans="${encodeURIComponent(c)}" onclick="answerGQuiz(this)"><span style="font-weight:700;margin-right:8px;color:var(--pri)">${labels[i]}.</span>${c}</button>`
+  ).join('');
+}
+
+function answerGQuiz(btn) {
+  const chosen = decodeURIComponent(btn.dataset.ans);
+  const q = gQuizSession.items[gQuizSession.idx];
+  const correct = q.answer;
+  const buttons = document.querySelectorAll('#g-qz-choices .qz-choice');
+  buttons.forEach(b => {
+    b.disabled = true;
+    const v = decodeURIComponent(b.dataset.ans);
+    if (v === correct) b.classList.add('correct');
+    else if (b === btn && v !== correct) b.classList.add('wrong');
+  });
+  const isCorrect = chosen === correct;
+  if (isCorrect) gQuizSession.score++;
+
+  const fb = document.getElementById('g-qz-feedback');
+  fb.style.display = 'block';
+  fb.style.background = isCorrect ? '#D1FAE5' : '#FEE2E2';
+  fb.style.color = isCorrect ? '#065F46' : '#991B1B';
+  fb.innerHTML = `<div style="font-weight:700;margin-bottom:4px">${isCorrect ? '✓ 答對了' : '✗ 答錯'} — 正解：${q.fullPattern}（${q.meaning}）</div><div style="font-size:12px;line-height:1.6;color:var(--txt)">${q.explanation}</div><button class="btn btn-pri" style="margin-top:10px;padding:10px;font-size:14px" onclick="nextGQuiz()">下一題 →</button>`;
+}
+
+function nextGQuiz() {
+  gQuizSession.idx++;
+  loadGQuiz();
+}
+
+function showGQScore() {
+  document.getElementById('g-qz-body').style.display = 'none';
+  const score = gQuizSession.score, total = gQuizSession.items.length;
+  const pct = Math.round(score/total*100);
+  document.getElementById('g-score-pct').textContent = pct + '%';
+  document.getElementById('g-score-frac').textContent = score + '/' + total;
+  let msg = '繼續加油！', sub = '多複習幾次會更好';
+  if (pct >= 90) { msg = '太厲害了！'; sub = '掌握得非常好'; }
+  else if (pct >= 70) { msg = '不錯喔！'; sub = '再多練幾題就完美了'; }
+  else if (pct >= 50) { msg = '有進步！'; sub = '把錯的部分回去看看說明'; }
+  document.getElementById('g-score-msg').textContent = msg;
+  document.getElementById('g-score-sub').textContent = sub;
+  document.getElementById('g-qz-score').style.display = 'flex';
+}
 
 // ===================== STATS =====================
 function renderStats() {
