@@ -108,7 +108,16 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
   align-items:center;justify-content:center;padding:28px;box-shadow:var(--shadow-lg)}
 .flip-front{background:linear-gradient(145deg,#6366F1,#8B5CF6,#A78BFA);color:#fff}
 .flip-back{background:#fff;transform:rotateY(180deg);border:1px solid var(--bdr)}
-.fc-kanji{font-size:56px;font-weight:700;margin-bottom:10px;text-align:center;letter-spacing:2px}
+.fc-img-wrap{width:140px;height:140px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.fc-img-wrap.hidden{display:none}
+.fc-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.fc-img-wrap .ph{font-size:11px;color:rgba(255,255,255,.7);letter-spacing:.5px}
+.modal-img{width:100%;max-height:200px;object-fit:cover;border-radius:14px;margin-bottom:14px;
+  display:block;background:var(--bg)}
+.modal-img.hidden{display:none}
+.fc-kanji{font-size:42px;font-weight:700;margin-bottom:8px;text-align:center;letter-spacing:2px}
 .fc-reading{font-size:22px;opacity:.9;text-align:center;font-weight:500}
 .fc-hint{font-size:12px;opacity:.55;margin-top:18px;letter-spacing:.5px}
 .fc-pos-badge{background:rgba(255,255,255,.22);border-radius:99px;padding:5px 14px;
@@ -328,6 +337,7 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
         <div class="flip-inner" id="flip-inner">
           <div class="flip-front">
             <div class="fc-pos-badge" id="fc-pos-front">名詞</div>
+            <div class="fc-img-wrap hidden" id="fc-img-wrap"><span class="ph" id="fc-img-ph">載入中…</span></div>
             <div class="fc-kanji" id="fc-kanji">学校</div>
             <div class="fc-reading" id="fc-reading">がっこう</div>
             <button class="speak-fab" id="fc-speak-btn" onclick="event.stopPropagation();speakFC()">
@@ -453,6 +463,16 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
       <div class="legend-left"><div class="legend-dot" style="background:#DC2626"></div>正確率</div>
       <strong id="st-acc">—</strong>
     </div>
+  </div>
+  <div class="card" style="margin-top:8px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:6px">🖼️ 圖片 API（Pexels）</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:10px">在閃卡正面顯示對應圖片。<a href="https://www.pexels.com/api/" target="_blank" style="color:var(--pri)">取得免費 API key</a></div>
+    <input type="text" id="pexels-key-input" placeholder="貼上你的 Pexels API key" style="width:100%;padding:10px 12px;border:1.5px solid var(--bdr);border-radius:10px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-pri" style="margin:0;flex:1;padding:10px;font-size:13px" onclick="saveApiKey()">儲存 key</button>
+      <button class="btn btn-sec" style="margin:0;flex:1;padding:10px;font-size:13px" onclick="clearImageCache()">清除圖片快取</button>
+    </div>
+    <div id="pexels-status" style="font-size:12px;color:var(--sub);margin-top:8px"></div>
   </div>
   <button class="btn" style="background:#FEE2E2;color:#DC2626;font-weight:600" onclick="confirmReset()">🗑 重置所有進度</button>
 </div>
@@ -582,6 +602,7 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
   <div class="modal" id="modal-content">
     <div class="modal-handle"></div>
+    <img class="modal-img hidden" id="m-img" alt="">
     <div class="modal-kanji" id="m-kanji"></div>
     <div class="modal-reading" id="m-reading"></div>
     <div class="speak-modal-row">
@@ -1633,6 +1654,108 @@ function getQuizPool() {
   return WORDS.filter(w => getWordProg(w.id).status === 'quiz');
 }
 
+// ===================== IMAGES (Pexels) =====================
+const IMG_CACHE_KEY = 'n5_img_cache_v1';
+const PEXELS_KEY_KEY = 'n5_pexels_key';
+const IMG_NONE = '__NONE__';
+const _imgPromises = {};
+
+function loadImgCache() { return JSON.parse(localStorage.getItem(IMG_CACHE_KEY) || '{}'); }
+function saveImgCache(c) { localStorage.setItem(IMG_CACHE_KEY, JSON.stringify(c)); }
+function getApiKey() { return localStorage.getItem(PEXELS_KEY_KEY) || ''; }
+
+async function fetchWordImage(word) {
+  const cache = loadImgCache();
+  if (cache[word.id]) return cache[word.id] === IMG_NONE ? null : cache[word.id];
+  if (_imgPromises[word.id]) return _imgPromises[word.id];
+  const key = getApiKey();
+  if (!key) return null;
+
+  const queries = [word.k, word.m].filter(Boolean);
+  const promise = (async () => {
+    for (const q of queries) {
+      try {
+        const r = await fetch('https://api.pexels.com/v1/search?per_page=1&query=' + encodeURIComponent(q), {
+          headers: { Authorization: key }
+        });
+        if (!r.ok) continue;
+        const data = await r.json();
+        if (data.photos && data.photos.length > 0) {
+          const url = data.photos[0].src.medium || data.photos[0].src.small;
+          if (url) {
+            const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
+            return url;
+          }
+        }
+      } catch(e) {}
+    }
+    const c = loadImgCache(); c[word.id] = IMG_NONE; saveImgCache(c);
+    return null;
+  })();
+  _imgPromises[word.id] = promise;
+  promise.finally(() => { delete _imgPromises[word.id]; });
+  return promise;
+}
+
+function saveApiKey() {
+  const v = (document.getElementById('pexels-key-input').value || '').trim();
+  const status = document.getElementById('pexels-status');
+  if (!v) { status.textContent = '請先輸入 key'; status.style.color = 'var(--red)'; return; }
+  localStorage.setItem(PEXELS_KEY_KEY, v);
+  status.textContent = '✓ 已儲存';
+  status.style.color = 'var(--grn)';
+}
+
+function clearImageCache() {
+  localStorage.removeItem(IMG_CACHE_KEY);
+  const status = document.getElementById('pexels-status');
+  status.textContent = '✓ 圖片快取已清除';
+  status.style.color = 'var(--grn)';
+}
+
+function loadApiKeyToInput() {
+  const inp = document.getElementById('pexels-key-input');
+  const status = document.getElementById('pexels-status');
+  if (!inp) return;
+  const key = getApiKey();
+  if (key) {
+    inp.value = key;
+    if (status) { status.textContent = '✓ 已設定（編輯後再按儲存即可更新）'; status.style.color = 'var(--grn)'; }
+  } else {
+    if (status) { status.textContent = '尚未設定（沒有 key 時閃卡不顯示圖片）'; status.style.color = 'var(--sub)'; }
+  }
+}
+
+async function applyImageToFC(word, sessionToken) {
+  const wrap = document.getElementById('fc-img-wrap');
+  const ph = document.getElementById('fc-img-ph');
+  if (!wrap) return;
+  if (!getApiKey()) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = '<span class="ph" id="fc-img-ph">載入中…</span>';
+  const url = await fetchWordImage(word);
+  // 若卡片已換到下一張就不更新
+  if (sessionToken !== fcSession._token) return;
+  if (url) {
+    wrap.innerHTML = '<img alt="" src="' + url + '">';
+  } else {
+    wrap.classList.add('hidden');
+  }
+}
+
+async function applyImageToModal(word) {
+  const img = document.getElementById('m-img');
+  if (!img) return;
+  if (!getApiKey()) { img.classList.add('hidden'); img.removeAttribute('src'); return; }
+  img.classList.add('hidden'); img.removeAttribute('src');
+  const url = await fetchWordImage(word);
+  if (currentModalWord && currentModalWord.id !== word.id) return;
+  if (url) {
+    img.src = url;
+    img.classList.remove('hidden');
+  }
+}
+
 // ===================== UI STATE =====================
 let curScreen = 'home';
 let wordFilter = 'all';
@@ -1819,6 +1942,8 @@ function loadFCCard() {
   document.getElementById('fc-speak-ex').classList.toggle('hidden', !w.ex);
   document.getElementById('flip-inner').classList.remove('flipped');
   fcSession.flipped = false;
+  fcSession._token = (fcSession._token || 0) + 1;
+  applyImageToFC(w, fcSession._token);
 }
 
 function flipCard() {
@@ -1983,6 +2108,7 @@ function showWordModal(id) {
   const w = WORDS.find(x => x.id === id);
   currentModalWord = w;
   const wp = getWordProg(id);
+  applyImageToModal(w);
   document.getElementById('m-kanji').textContent = w.k;
   document.getElementById('m-reading').textContent = w.r;
   document.getElementById('m-reading').style.display = (w.k === w.r) ? 'none' : 'block';
@@ -2355,6 +2481,7 @@ function renderStats() {
   document.getElementById('st-learned').textContent = learned;
   document.getElementById('st-reviews').textContent = rev;
   document.getElementById('st-acc').textContent = rev>0 ? Math.round(cor/rev*100)+'%' : '—';
+  loadApiKeyToInput();
 }
 
 function confirmReset() {
