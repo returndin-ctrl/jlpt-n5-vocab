@@ -1941,6 +1941,19 @@ function buildAIUrl(prompt, seed) {
     '?width=512&height=512&nologo=true&seed=' + seed + '&model=flux';
 }
 
+function localImageUrl(id) {
+  return './images/' + id + '.jpg';
+}
+
+function checkLocalImage(id) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = localImageUrl(id);
+  });
+}
+
 async function fetchWordImage(word, force=false) {
   const cache = loadImgCache();
   if (!force && cache[word.id]) return cache[word.id] === IMG_NONE ? null : cache[word.id];
@@ -1956,8 +1969,16 @@ async function fetchWordImage(word, force=false) {
   if (force) bumpImgPage(word.id);
   const page = getImgPage(word.id);
 
-  // 抽象詞優先用 AI 生成（URL 即圖片，無需 API 呼叫）
+  // 抽象詞優先用 AI：先試本地預生圖，再 fallback Pollinations
   if (ai && !en) {
+    if (!force) {
+      const hasLocal = await checkLocalImage(word.id);
+      if (hasLocal) {
+        const url = localImageUrl(word.id);
+        const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
+        return url;
+      }
+    }
     const seed = word.id * 100 + page;
     const url = buildAIUrl(ai, seed);
     const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
