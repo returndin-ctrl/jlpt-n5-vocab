@@ -100,7 +100,7 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
 .fc-prog-fill{height:100%;background:#fff;transition:width .3s;border-radius:99px}
 .fc-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px 20px}
 
-.flip-card{width:100%;max-width:380px;height:300px;perspective:1200px;cursor:pointer}
+.flip-card{width:100%;max-width:380px;height:380px;perspective:1200px;cursor:pointer}
 .flip-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.4,0,.2,1)}
 .flip-inner.flipped{transform:rotateY(180deg)}
 .flip-front,.flip-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;
@@ -1655,7 +1655,123 @@ function getQuizPool() {
 }
 
 // ===================== IMAGES (Pexels) =====================
-const IMG_CACHE_KEY = 'n5_img_cache_v1';
+// 每個單字 id 對應一個英文搜尋詞（Pexels 主要靠英文索引）
+// 沒有對應 = 抽象詞，不顯示圖片
+const WORD_EN = {
+  11:'hundred dollar bill',13:'ten thousand money cash',
+  15:'clock time',18:'time clock',19:'morning sky',20:'afternoon sun',
+  21:'sunrise morning',22:'noon sun',23:'night sky',24:'evening sunset',
+  26:'today calendar',
+  39:'monday',40:'tuesday',41:'wednesday',42:'thursday',43:'friday',44:'saturday',45:'sunday',
+  47:'person portrait',48:'man portrait',49:'woman portrait',50:'child kid',51:'adult',
+  52:'family',53:'father',54:'mother',55:'father',56:'mother',
+  57:'older brother',58:'older sister',59:'younger brother boy',60:'younger sister girl',
+  61:'older brother',62:'older sister',63:'friends group',64:'teacher classroom',
+  65:'student',66:'international student',
+  67:'school building',68:'house home',69:'house home',70:'bedroom interior',71:'office building',
+  72:'train station',73:'shop store',74:'department store',75:'bank building',76:'hospital',
+  77:'library',78:'post office',79:'bookstore',80:'restaurant',81:'cafe coffee shop',
+  82:'public park',83:'cinema theater',84:'classroom',85:'toilet bathroom',86:'hotel',87:'university campus',
+  88:'food meal',89:'beverages drinks',90:'rice bowl',91:'breakfast',92:'lunch meal',93:'dinner',
+  94:'bread',95:'meat',96:'fish food',97:'vegetables',98:'fruit',99:'eggs',100:'snacks candy',
+  101:'glass of water',102:'tea',103:'coffee',104:'milk',105:'orange juice',106:'beer',107:'sake japanese alcohol',
+  108:'human body',109:'head face',110:'face portrait',111:'eye closeup',112:'ear',113:'mouth lips',
+  114:'nose',115:'teeth smile',116:'hand',117:'foot leg',
+  118:'open book',119:'notebook',120:'pen writing',121:'pencil',122:'eraser',123:'dictionary',
+  124:'newspaper',125:'magazines',126:'paper sheet',127:'postage stamp',128:'letter envelope',
+  129:'photograph',130:'wooden desk',131:'chair',132:'television',133:'radio',134:'telephone',
+  135:'camera',136:'wall clock',137:'handbag',138:'wallet',139:'umbrella',140:'shoes',
+  141:'clothes',142:'car',143:'bicycle',144:'bus',145:'train',146:'airplane',147:'subway',
+  148:'weather',149:'sunny weather',150:'rain',151:'snow',152:'wind',153:'sky clouds',
+  154:'ocean sea',155:'mountain',156:'river',157:'tree',158:'flower',159:'dog',160:'cat',161:'bird',
+  162:'colors palette',163:'white color',164:'black color',165:'red color',166:'blue color',
+  167:'yellow color',168:'brown color',169:'green color',
+  170:'eating food',171:'drinking water',172:'watching tv',173:'listening music',174:'people talking',
+  175:'reading book',176:'writing pen',177:'walking street',178:'arriving airport',179:'going home',
+  180:'door entrance',181:'exit door',182:'standing person',183:'sitting',184:'shopping bags',
+  185:'selling shop',186:'lending hand',187:'borrowing book',188:'teaching classroom',189:'learning study',
+  190:'studying',191:'waking up',192:'sleeping bed',193:'resting break',194:'working office',
+  198:'understanding lightbulb',200:'forgetting confused',201:'remembering memory',202:'waiting',
+  203:'meeting people',204:'living home',205:'using phone',206:'washing hands',207:'opening door',
+  208:'closing door',209:'turn on light',210:'turn off',211:'photographing',212:'singing',
+  213:'swimming',214:'children playing',215:'running',216:'walking',217:'riding bike',218:'getting off train',
+  219:'holding hand',220:'making cooking',221:'going out',222:'starting line',223:'finish line',
+  224:'rain falling',
+  225:'big elephant',226:'small mouse',227:'new shiny',228:'old vintage',229:'tall building',
+  230:'low short',231:'cheap discount',232:'long ruler',233:'short pencil',234:'heavy weight',
+  235:'feather light',236:'thumbs up good',237:'thumbs down bad',238:'hot summer',239:'cold winter',
+  240:'hot fire',241:'ice cold',242:'warm cozy',243:'cool autumn',244:'bright light',245:'dark night',
+  246:'close near',247:'far distance',248:'early morning',249:'fast speed',250:'slow turtle',
+  251:'delicious food',252:'bad tasting',253:'fun joy',254:'boring tired',255:'busy work',
+  256:'kind hug',257:'difficult math',258:'easy simple',259:'interesting',260:'strong muscle',
+  261:'weak',262:'young woman',263:'crowd many',264:'few empty',
+  265:'energetic happy',266:'quiet silence',267:'lively crowd',268:'famous',269:'kind helping',
+  270:'convenient',271:'inconvenient',272:'beautiful clean',273:'love heart',274:'dislike',
+  275:'skilled expert',276:'amateur',277:'leisure relaxing',280:'easy simple',281:'identical twins',282:'colorful variety',
+  297:'number one trophy',310:'price tag money',
+  321:'january winter',322:'february',323:'march spring',324:'cherry blossom april',
+  325:'may flowers',326:'june rain',327:'july summer',328:'august beach',
+  329:'september autumn',330:'october pumpkin',331:'november leaves',332:'december christmas',
+  347:'spring cherry blossom',348:'summer beach',349:'autumn leaves',350:'winter snow',351:'four seasons',
+  355:'moon night',356:'sun day',357:'birthday cake',
+  372:'japanese yen',381:'numbers',
+  382:'up arrow',383:'down arrow',386:'right arrow',387:'left arrow',
+  396:'street corner',397:'east compass',398:'west compass',399:'south compass',400:'north compass',
+  401:'world flag',402:'japan flag',403:'china flag',404:'korea seoul',405:'taiwan taipei',
+  406:'usa flag',407:'london uk',408:'eiffel tower paris',409:'japanese person',410:'chinese person',
+  411:'foreign country',412:'foreigner tourist',413:'japanese language hiragana',414:'english language',415:'chinese characters',
+  416:'elementary school children',417:'middle school',418:'high school',419:'classroom lesson',
+  420:'homework',421:'test exam',422:'exam paper',423:'question mark',424:'answer check',
+  425:'problem',426:'classroom students',427:'kanji characters',428:'words text',429:'dictionary meaning',
+  430:'practice',
+  431:'office work',432:'business meeting',433:'handshake promise',434:'planner schedule',
+  436:'birthday party',437:'travel suitcase',438:'walking park',439:'shopping mall',
+  440:'ticket',441:'world map',442:'road street',443:'bridge',444:'traffic light',445:'japanese police box',
+  446:'entrance door',447:'exit sign',448:'garden flowers',449:'pond water',450:'forest trees',
+  451:'small town',452:'village countryside',453:'place location',454:'japanese genkan entrance',
+  455:'kitchen interior',456:'bathtub bath',457:'restroom sign',458:'apartment building',459:'swimming pool',
+  460:'shirt',461:'pants jeans',462:'skirt',463:'sweater',464:'winter coat',465:'jacket',
+  466:'necktie',467:'hat cap',468:'socks',469:'eyeglasses',470:'handkerchief',471:'button',472:'slippers',
+  473:'door',474:'window',475:'key',476:'light bulb',477:'fire flame',478:'gas stove',
+  479:'bed',480:'japanese futon',481:'shelf',482:'refrigerator',483:'washing machine',484:'laptop computer',
+  485:'soap bar',486:'toothbrush',487:'towel',488:'tape roll',489:'film roll camera',490:'envelope',491:'postcard',
+  492:'rice grain',493:'salt',494:'sugar',495:'soy sauce',496:'butter',497:'apple',
+  498:'mandarin orange',499:'banana',500:'tomato',501:'lemon',502:'cake',503:'ice cream',
+  504:'chocolate',505:'curry rice',506:'japanese bento',507:'cooked dish',508:'drinking glass',
+  509:'coffee cup',510:'plate dish',511:'rice bowl',512:'chopsticks',513:'spoon',514:'fork',515:'knife',
+  516:'music notes',517:'singing microphone',518:'movie cinema',519:'sports',520:'baseball',
+  521:'soccer ball',522:'tennis',523:'piano',524:'guitar',525:'video game controller',526:'painting art',527:'hobby',
+  528:'boy child',529:'girl child',530:'middle aged man',531:'middle aged woman',
+  532:'elderly man grandfather',533:'elderly woman grandmother',534:'husband',535:'wife',
+  536:'doctor',537:'office worker suit',538:'shop assistant',539:'train conductor',540:'police officer',
+  542:'pushing button',543:'pulling rope',544:'putting in box',545:'mailing letter',546:'opening',
+  547:'closing',548:'stop sign',549:'parking car',550:'turning road',551:'climbing mountain',
+  552:'crossing street',553:'handing over',554:'choosing',555:'answering question',557:'speaking',
+  558:'phone call',559:'inhaling breath',560:'placing object',561:'lost item',562:'newborn baby',
+  565:'hurry running',566:'flower bloom',567:'flying bird',568:'cat meow',569:'crying',570:'smiling',
+  571:'brushing teeth',572:'cutting',573:'sticker',574:'starting line',575:'continuing path',
+  576:'queue line',577:'arranging books',578:'passing through',579:'wearing shoes',580:'wearing shirt',
+  581:'taking off coat',582:'searching magnifying',583:'taking grabbing',584:'troubled worried',585:'phone call',
+  586:'wedding',587:'cooking kitchen',588:'laundry washing',589:'cleaning',590:'walking park',
+  591:'shopping bags',592:'travel suitcase',593:'driving car',594:'photocopy machine',595:'practice',
+  596:'asking question',597:'explaining',598:'invitation card',599:'introducing handshake',600:'study abroad',
+  601:'phone call',602:'overtime work',603:'business trip',604:'piano playing',605:'taking shower',606:'tired exhausted',
+  607:'pain',608:'beautiful',609:'cute puppy',610:'danger warning',611:'dirty mud',612:'thick rope',
+  613:'thin slim',614:'wide field',615:'narrow alley',616:'thick book',617:'thin paper',618:'round circle',
+  619:'sweet candy',620:'spicy chili',621:'bitter coffee',622:'salt salty',623:'happy joy',
+  624:'sad',625:'lonely',626:'desire wish',627:'precious',628:'important note',629:'necessary',
+  630:'special gift',631:'freedom',632:'safe',633:'danger',634:'serious face',635:'splendid',636:'healthy',637:'handsome man',
+  654:'straight road',
+  679:'name tag',680:'address',681:'phone number',682:'email',683:'voice microphone',684:'sound speaker',
+  685:'conversation',687:'objects',688:'place location',
+  690:'gift present',691:'money cash',692:'souvenir',693:'japanese festival',694:'dream sleep',
+  695:'sick fever',696:'cold sneeze',697:'medicine pills',698:'handbag',699:'news',
+  700:'internet',701:'mobile phone',703:'calendar week',704:'calendar month',
+  706:'all everything',707:'half',708:'crowd many',709:'group people',710:'group everyone',
+  711:'cloudy sky',712:'taxi',713:'boat ship',714:'airport',715:'parking lot',
+};
+
+const IMG_CACHE_KEY = 'n5_img_cache_v2';
 const PEXELS_KEY_KEY = 'n5_pexels_key';
 const IMG_NONE = '__NONE__';
 const _imgPromises = {};
@@ -1671,14 +1787,19 @@ async function fetchWordImage(word) {
   const key = getApiKey();
   if (!key) return null;
 
-  const queries = [word.k, word.m].filter(Boolean);
+  const en = WORD_EN[word.id];
+  if (!en) {
+    // 抽象詞沒有對應的英文關鍵字 → 不顯示圖
+    const c = loadImgCache(); c[word.id] = IMG_NONE; saveImgCache(c);
+    return null;
+  }
+
   const promise = (async () => {
-    for (const q of queries) {
-      try {
-        const r = await fetch('https://api.pexels.com/v1/search?per_page=1&query=' + encodeURIComponent(q), {
-          headers: { Authorization: key }
-        });
-        if (!r.ok) continue;
+    try {
+      const r = await fetch('https://api.pexels.com/v1/search?per_page=1&query=' + encodeURIComponent(en), {
+        headers: { Authorization: key }
+      });
+      if (r.ok) {
         const data = await r.json();
         if (data.photos && data.photos.length > 0) {
           const url = data.photos[0].src.medium || data.photos[0].src.small;
@@ -1687,8 +1808,8 @@ async function fetchWordImage(word) {
             return url;
           }
         }
-      } catch(e) {}
-    }
+      }
+    } catch(e) {}
     const c = loadImgCache(); c[word.id] = IMG_NONE; saveImgCache(c);
     return null;
   })();
