@@ -1777,7 +1777,146 @@ const WORD_EN = {
   711:'cloudy sky',712:'taxi',713:'boat ship',714:'airport',715:'parking lot',
 };
 
-const IMG_CACHE_KEY = 'n5_img_cache_v2';
+// 抽象詞用 AI 生成（Pollinations.ai，免費無金鑰）
+const WORD_AI = {
+  12:'one thousand yen bills stack flat illustration',14:'number zero digit minimalist',
+  17:'one half divided pie chart illustration',
+  25:'present moment now hourglass flat illustration',
+  27:'yesterday past calendar page flat illustration',
+  28:'tomorrow future calendar page flat illustration',
+  29:'daily routine repeating cycle flat illustration',
+  30:'this week calendar highlighted flat illustration',
+  31:'last week previous calendar flat illustration',
+  32:'next week future calendar flat illustration',
+  33:'this month calendar flat illustration',
+  34:'last month previous calendar flat illustration',
+  35:'next month upcoming calendar flat illustration',
+  36:'current year 2026 calendar flat illustration',
+  37:'last year 2025 calendar flat illustration',
+  38:'next year 2027 calendar flat illustration',
+  46:'what day of week calendar question mark illustration',
+  196:'people existing in a room together flat illustration',
+  197:'objects existing on a table flat illustration',
+  199:'lightbulb idea knowing brain flat illustration',
+  278:'overwhelmed stressed person flat illustration',
+  279:'thumbs up okay reassurance flat illustration',
+  283:'very intense exclamation flat illustration',
+  284:'many objects abundance pile flat illustration',
+  285:'a small amount little bit flat illustration',
+  286:'a tiny pinch small amount flat illustration',
+  287:'frequently often clock arrows flat illustration',
+  288:'always constant repetition flat illustration',
+  289:'sometimes occasional flat illustration',
+  290:'not very small portion flat illustration',
+  291:'completely empty zero flat illustration',
+  292:'immediately quick lightning flat illustration',
+  293:'already done checkmark flat illustration',
+  294:'still waiting hourglass flat illustration',
+  295:'again repeat arrow flat illustration',
+  296:'more arrow up bigger flat illustration',
+  298:'truly really emphasis flat illustration',
+  299:'pointing at this object close finger flat illustration',
+  300:'pointing at that object medium distance flat illustration',
+  301:'pointing at that distant object far flat illustration',
+  302:'here location marker close flat illustration',
+  303:'there location marker medium flat illustration',
+  304:'over there far away location flat illustration',
+  305:'who question silhouette person flat illustration',
+  306:'what question mark object flat illustration',
+  307:'where map location question flat illustration',
+  308:'when calendar clock question flat illustration',
+  309:'why question mark thinking flat illustration',
+  311:'how many counting numbers question flat illustration',
+  312:'good morning sunrise greeting flat illustration',
+  313:'hello greeting waving hand flat illustration',
+  314:'good evening night greeting flat illustration',
+  315:'goodbye waving farewell flat illustration',
+  316:'apologetic excuse me bow flat illustration',
+  317:'thank you gratitude bow flat illustration',
+  318:'sorry apology bow flat illustration',
+  319:'yes nodding agreement flat illustration',
+  320:'no shaking head disagreement flat illustration',
+  333:'what month calendar question flat illustration',
+  334:'first day of month calendar flat illustration',
+  335:'second day calendar flat illustration',
+  336:'third day calendar flat illustration',
+  337:'fourth day calendar flat illustration',
+  338:'fifth day calendar flat illustration',
+  339:'sixth day calendar flat illustration',
+  340:'seventh day calendar flat illustration',
+  341:'eighth day calendar flat illustration',
+  342:'ninth day calendar flat illustration',
+  343:'tenth day calendar flat illustration',
+  344:'fourteenth day calendar flat illustration',
+  345:'twentieth day calendar flat illustration',
+  346:'what date calendar question flat illustration',
+  352:'one whole day from morning to night flat illustration',
+  353:'one week seven days calendar flat illustration',
+  354:'a year period four seasons flat illustration',
+  358:'one item single object flat illustration',
+  359:'two items pair flat illustration',
+  360:'three items group flat illustration',
+  361:'four items group flat illustration',
+  362:'five items group flat illustration',
+  363:'six items group flat illustration',
+  364:'seven items group flat illustration',
+  365:'eight items group flat illustration',
+  366:'nine items group flat illustration',
+  367:'one person alone flat illustration',
+  368:'two people pair friends flat illustration',
+  369:'how many people group question flat illustration',
+  370:'twenty years old young adult flat illustration',
+  371:'how old age question flat illustration',
+  373:'numbered turn order flat illustration',
+  374:'counting times tally flat illustration',
+  375:'building floor levels flat illustration',
+  376:'stack of paper sheets flat illustration',
+  377:'stack of books volumes flat illustration',
+  378:'stack of cups flat illustration',
+  380:'years old age calendar flat illustration',
+  384:'in front of position arrow flat illustration',
+  385:'behind position back arrow flat illustration',
+  388:'inside container box flat illustration',
+  389:'outside building exterior flat illustration',
+  390:'side beside position flat illustration',
+  391:'next door neighbor adjacent flat illustration',
+  392:'between two objects middle flat illustration',
+  393:'nearby close proximity flat illustration',
+  394:'over there opposite side flat illustration',
+  395:'beside side position flat illustration',
+  435:'errand task to do list flat illustration',
+  541:'self mirror reflection flat illustration',
+  556:'thinking person thought bubble flat illustration',
+  564:'transformation becoming arrow flat illustration',
+  656:'and then sequential arrows flat illustration',
+  657:'after that sequential flow flat illustration',
+  658:'but contrast versus flat illustration',
+  659:'however contrast arrow flat illustration',
+  660:'therefore arrow result flat illustration',
+  661:'well then transition flat illustration',
+  662:'so well then transition flat illustration',
+  663:'leaving for work goodbye flat illustration',
+  664:'see you off waving flat illustration',
+  665:'i am home arrival flat illustration',
+  666:'welcome home greeting flat illustration',
+  667:'before eating gratitude prayer flat illustration',
+  668:'after meal thanks gratitude flat illustration',
+  669:'good night moon sleep flat illustration',
+  670:'please bowing request flat illustration',
+  672:'thank you very much greeting flat illustration',
+  673:'pleased to meet you handshake flat illustration',
+  674:'excuse me leaving bow flat illustration',
+  675:'good work tired thanks flat illustration',
+  676:'take care farewell flat illustration',
+  677:'get well soon health flat illustration',
+  678:'welcome customer shop flat illustration',
+  686:'matter event situation flat illustration',
+  689:'direction person honorific flat illustration',
+  702:'minutes time clock flat illustration',
+  705:'years period long term flat illustration',
+};
+
+const IMG_CACHE_KEY = 'n5_img_cache_v3';
 const IMG_PAGE_KEY = 'n5_img_page_v1';
 const PEXELS_KEY_KEY = 'n5_pexels_key';
 const IMG_NONE = '__NONE__';
@@ -1797,15 +1936,19 @@ function bumpImgPage(id) {
   localStorage.setItem(IMG_PAGE_KEY, JSON.stringify(p));
 }
 
+function buildAIUrl(prompt, seed) {
+  return 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) +
+    '?width=512&height=512&nologo=true&seed=' + seed + '&model=flux';
+}
+
 async function fetchWordImage(word, force=false) {
   const cache = loadImgCache();
   if (!force && cache[word.id]) return cache[word.id] === IMG_NONE ? null : cache[word.id];
   if (_imgPromises[word.id]) return _imgPromises[word.id];
-  const key = getApiKey();
-  if (!key) return null;
 
   const en = WORD_EN[word.id];
-  if (!en) {
+  const ai = WORD_AI[word.id];
+  if (!en && !ai) {
     const c = loadImgCache(); c[word.id] = IMG_NONE; saveImgCache(c);
     return null;
   }
@@ -1813,22 +1956,42 @@ async function fetchWordImage(word, force=false) {
   if (force) bumpImgPage(word.id);
   const page = getImgPage(word.id);
 
+  // 抽象詞優先用 AI 生成（URL 即圖片，無需 API 呼叫）
+  if (ai && !en) {
+    const seed = word.id * 100 + page;
+    const url = buildAIUrl(ai, seed);
+    const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
+    return url;
+  }
+
+  // 具體詞用 Pexels 真實照片，需要 API key
+  const key = getApiKey();
   const promise = (async () => {
-    try {
-      const r = await fetch('https://api.pexels.com/v1/search?per_page=1&page=' + page + '&query=' + encodeURIComponent(en), {
-        headers: { Authorization: key }
-      });
-      if (r.ok) {
-        const data = await r.json();
-        if (data.photos && data.photos.length > 0) {
-          const url = data.photos[0].src.medium || data.photos[0].src.small;
-          if (url) {
-            const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
-            return url;
+    if (key && en) {
+      try {
+        const r = await fetch('https://api.pexels.com/v1/search?per_page=1&page=' + page + '&query=' + encodeURIComponent(en), {
+          headers: { Authorization: key }
+        });
+        if (r.ok) {
+          const data = await r.json();
+          if (data.photos && data.photos.length > 0) {
+            const url = data.photos[0].src.medium || data.photos[0].src.small;
+            if (url) {
+              const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
+              return url;
+            }
           }
         }
-      }
-    } catch(e) {}
+      } catch(e) {}
+    }
+    // Pexels 失敗或沒 key → 退回 AI 生成（用 en 當 prompt）
+    if (en || ai) {
+      const prompt = ai || (en + ' realistic photo');
+      const seed = word.id * 100 + page;
+      const url = buildAIUrl(prompt, seed);
+      const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
+      return url;
+    }
     const c = loadImgCache(); c[word.id] = IMG_NONE; saveImgCache(c);
     return null;
   })();
@@ -1882,7 +2045,11 @@ async function applyImageToFC(word, sessionToken, force=false) {
     wrap.classList.add('hidden');
     if (refresh) refresh.classList.add('hidden');
   };
-  if (!getApiKey() || !WORD_EN[word.id]) { hideAll(); return; }
+  const hasEn = !!WORD_EN[word.id];
+  const hasAi = !!WORD_AI[word.id];
+  const hasKey = !!getApiKey();
+  // 至少要有一個可用來源：AI 不用 key；Pexels 需要 key
+  if (!(hasAi || (hasEn && hasKey))) { hideAll(); return; }
   wrap.classList.remove('hidden');
   wrap.innerHTML = '<span class="ph" id="fc-img-ph">載入中…</span>';
   if (refresh) refresh.classList.add('hidden');
