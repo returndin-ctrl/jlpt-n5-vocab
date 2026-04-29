@@ -109,11 +109,16 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
 .flip-front{background:linear-gradient(145deg,#6366F1,#8B5CF6,#A78BFA);color:#fff}
 .flip-back{background:#fff;transform:rotateY(180deg);border:1px solid var(--bdr)}
 .fc-img-wrap{width:140px;height:140px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.18);
-  display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0;
-  box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  display:flex;align-items:center;justify-content:center;margin-bottom:6px;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);position:relative}
 .fc-img-wrap.hidden{display:none}
 .fc-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
 .fc-img-wrap .ph{font-size:11px;color:rgba(255,255,255,.7);letter-spacing:.5px}
+.fc-img-refresh{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:11px;
+  padding:4px 10px;border-radius:99px;cursor:pointer;margin-bottom:10px;
+  display:inline-flex;align-items:center;gap:4px;letter-spacing:.3px;backdrop-filter:blur(4px)}
+.fc-img-refresh:active{background:rgba(255,255,255,.32)}
+.fc-img-refresh.hidden{display:none}
 .modal-img{width:100%;max-height:200px;object-fit:cover;border-radius:14px;margin-bottom:14px;
   display:block;background:var(--bg)}
 .modal-img.hidden{display:none}
@@ -338,6 +343,7 @@ body{background:var(--bg);color:var(--txt);user-select:none;-webkit-user-select:
           <div class="flip-front">
             <div class="fc-pos-badge" id="fc-pos-front">名詞</div>
             <div class="fc-img-wrap hidden" id="fc-img-wrap"><span class="ph" id="fc-img-ph">載入中…</span></div>
+            <button class="fc-img-refresh hidden" id="fc-img-refresh" onclick="event.stopPropagation();refreshFCImage()">🔄 換一張</button>
             <div class="fc-kanji" id="fc-kanji">学校</div>
             <div class="fc-reading" id="fc-reading">がっこう</div>
             <button class="speak-fab" id="fc-speak-btn" onclick="event.stopPropagation();speakFC()">
@@ -1772,6 +1778,7 @@ const WORD_EN = {
 };
 
 const IMG_CACHE_KEY = 'n5_img_cache_v2';
+const IMG_PAGE_KEY = 'n5_img_page_v1';
 const PEXELS_KEY_KEY = 'n5_pexels_key';
 const IMG_NONE = '__NONE__';
 const _imgPromises = {};
@@ -1780,23 +1787,35 @@ function loadImgCache() { return JSON.parse(localStorage.getItem(IMG_CACHE_KEY) 
 function saveImgCache(c) { localStorage.setItem(IMG_CACHE_KEY, JSON.stringify(c)); }
 function getApiKey() { return localStorage.getItem(PEXELS_KEY_KEY) || ''; }
 
-async function fetchWordImage(word) {
+function getImgPage(id) {
+  const p = JSON.parse(localStorage.getItem(IMG_PAGE_KEY) || '{}');
+  return p[id] || 1;
+}
+function bumpImgPage(id) {
+  const p = JSON.parse(localStorage.getItem(IMG_PAGE_KEY) || '{}');
+  p[id] = ((p[id] || 1) % 20) + 1;
+  localStorage.setItem(IMG_PAGE_KEY, JSON.stringify(p));
+}
+
+async function fetchWordImage(word, force=false) {
   const cache = loadImgCache();
-  if (cache[word.id]) return cache[word.id] === IMG_NONE ? null : cache[word.id];
+  if (!force && cache[word.id]) return cache[word.id] === IMG_NONE ? null : cache[word.id];
   if (_imgPromises[word.id]) return _imgPromises[word.id];
   const key = getApiKey();
   if (!key) return null;
 
   const en = WORD_EN[word.id];
   if (!en) {
-    // 抽象詞沒有對應的英文關鍵字 → 不顯示圖
     const c = loadImgCache(); c[word.id] = IMG_NONE; saveImgCache(c);
     return null;
   }
 
+  if (force) bumpImgPage(word.id);
+  const page = getImgPage(word.id);
+
   const promise = (async () => {
     try {
-      const r = await fetch('https://api.pexels.com/v1/search?per_page=1&query=' + encodeURIComponent(en), {
+      const r = await fetch('https://api.pexels.com/v1/search?per_page=1&page=' + page + '&query=' + encodeURIComponent(en), {
         headers: { Authorization: key }
       });
       if (r.ok) {
@@ -1816,6 +1835,14 @@ async function fetchWordImage(word) {
   _imgPromises[word.id] = promise;
   promise.finally(() => { delete _imgPromises[word.id]; });
   return promise;
+}
+
+async function refreshFCImage() {
+  if (!fcSession || !fcSession.words) return;
+  const w = fcSession.words[fcSession.idx];
+  if (!w) return;
+  fcSession._token = (fcSession._token || 0) + 1;
+  await applyImageToFC(w, fcSession._token, true);
 }
 
 function saveApiKey() {
@@ -1847,20 +1874,25 @@ function loadApiKeyToInput() {
   }
 }
 
-async function applyImageToFC(word, sessionToken) {
+async function applyImageToFC(word, sessionToken, force=false) {
   const wrap = document.getElementById('fc-img-wrap');
-  const ph = document.getElementById('fc-img-ph');
+  const refresh = document.getElementById('fc-img-refresh');
   if (!wrap) return;
-  if (!getApiKey()) { wrap.classList.add('hidden'); return; }
+  const hideAll = () => {
+    wrap.classList.add('hidden');
+    if (refresh) refresh.classList.add('hidden');
+  };
+  if (!getApiKey() || !WORD_EN[word.id]) { hideAll(); return; }
   wrap.classList.remove('hidden');
   wrap.innerHTML = '<span class="ph" id="fc-img-ph">載入中…</span>';
-  const url = await fetchWordImage(word);
-  // 若卡片已換到下一張就不更新
+  if (refresh) refresh.classList.add('hidden');
+  const url = await fetchWordImage(word, force);
   if (sessionToken !== fcSession._token) return;
   if (url) {
     wrap.innerHTML = '<img alt="" src="' + url + '">';
+    if (refresh) refresh.classList.remove('hidden');
   } else {
-    wrap.classList.add('hidden');
+    hideAll();
   }
 }
 
