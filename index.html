@@ -2157,10 +2157,12 @@ if (window.speechSynthesis) {
   speechSynthesis.addEventListener('voiceschanged', refreshJaVoice);
 }
 
+const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 let _currentAudio = null;
 
 function speakWebAPI(text, rate) {
-  if (!window.speechSynthesis) { showToast('裝置不支援語音功能'); return; }
+  if (!window.speechSynthesis) { showToast('裝置不支援語音功能'); return false; }
   speechSynthesis.cancel();
   if (!_jaVoice) refreshJaVoice();
   const u = new SpeechSynthesisUtterance(text);
@@ -2169,19 +2171,39 @@ function speakWebAPI(text, rate) {
   u.pitch = 1.0;
   if (_jaVoice) u.voice = _jaVoice;
   speechSynthesis.speak(u);
+  return true;
 }
 
 function speak(text, rate = 0.95) {
   if (!text) return;
   if (_currentAudio) { try { _currentAudio.pause(); } catch(e){} _currentAudio = null; }
   if (window.speechSynthesis) speechSynthesis.cancel();
+
+  // Mobile: use Web Speech API synchronously inside the user-gesture handler.
+  // Cross-origin <audio> + Google TTS often fails on iOS/Android, and by the
+  // time the catch() fallback fires the gesture has already been consumed.
+  if (IS_MOBILE) {
+    if (speakWebAPI(text, rate)) return;
+  }
+
   const url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=' + encodeURIComponent(text);
   const audio = new Audio(url);
+  audio.crossOrigin = 'anonymous';
   audio.playbackRate = rate;
   audio.preservesPitch = true;
   _currentAudio = audio;
-  audio.addEventListener('error', () => { if (_currentAudio === audio) { _currentAudio = null; speakWebAPI(text, rate); } });
-  audio.play().catch(() => { if (_currentAudio === audio) { _currentAudio = null; speakWebAPI(text, rate); } });
+  // Fire fallback synchronously alongside the play attempt so the gesture
+  // context isn't lost waiting for the error/reject to bubble up.
+  let fallbackFired = false;
+  const fireFallback = () => {
+    if (fallbackFired) return;
+    fallbackFired = true;
+    if (_currentAudio === audio) { try { audio.pause(); } catch(e){} _currentAudio = null; }
+    speakWebAPI(text, rate);
+  };
+  audio.addEventListener('error', fireFallback);
+  const p = audio.play();
+  if (p && typeof p.catch === 'function') p.catch(fireFallback);
 }
 function speakFC() {
   const w = fcSession.words[fcSession.idx];
