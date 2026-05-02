@@ -1995,6 +1995,17 @@ async function fetchWordImage(word, force=false) {
 
   const en = WORD_EN[word.id];
   const ai = WORD_AI[word.id];
+
+  // 所有單字都先試本地預生圖（images/{id}.jpg）— 離線可看，不用 API key
+  if (!force) {
+    const hasLocal = await checkLocalImage(word.id);
+    if (hasLocal) {
+      const url = localImageUrl(word.id);
+      const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
+      return url;
+    }
+  }
+
   if (!en && !ai) {
     const c = loadImgCache(); c[word.id] = IMG_NONE; saveImgCache(c);
     return null;
@@ -2003,16 +2014,8 @@ async function fetchWordImage(word, force=false) {
   if (force) bumpImgPage(word.id);
   const page = getImgPage(word.id);
 
-  // 抽象詞優先用 AI：先試本地預生圖，再 fallback Pollinations
+  // 抽象詞優先用 AI Prompt
   if (ai && !en) {
-    if (!force) {
-      const hasLocal = await checkLocalImage(word.id);
-      if (hasLocal) {
-        const url = localImageUrl(word.id);
-        const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
-        return url;
-      }
-    }
     const seed = word.id * 100 + page;
     const url = buildAIUrl(ai, seed);
     const c = loadImgCache(); c[word.id] = url; saveImgCache(c);
@@ -2105,8 +2108,10 @@ async function applyImageToFC(word, sessionToken, force=false) {
   const hasEn = !!WORD_EN[word.id];
   const hasAi = !!WORD_AI[word.id];
   const hasKey = !!getApiKey();
-  // 至少要有一個可用來源：AI 不用 key；Pexels 需要 key
-  if (!(hasAi || (hasEn && hasKey))) { hideAll(); return; }
+  // 來源優先序：本地預生圖（所有單字都試）→ AI prompt → Pexels（需 key）
+  // 只有完全沒任何來源（無本地、無 en、無 ai）才隱藏
+  const hasLocalCheck = await checkLocalImage(word.id);
+  if (!(hasLocalCheck || hasAi || (hasEn && hasKey))) { hideAll(); return; }
   wrap.classList.remove('hidden');
   wrap.innerHTML = '<span class="ph" id="fc-img-ph">載入中…</span>';
   if (bcWrap) { bcWrap.classList.add('hidden'); bcWrap.innerHTML = ''; }
