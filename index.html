@@ -2310,8 +2310,9 @@ function startFlashcard(mode) {
     words = getNewWords(15);
     if (words.length === 0) { showToast('所有單字都已開始學習了！'); return; }
   }
-  // shuffle
-  words = words.sort(() => Math.random()-0.5).slice(0, 20);
+  // 保留 WORDS 的主題編排順序（數字、飲料、身體部位…相鄰），
+  // 讓意思相似的單字盡量擺在一起，不隨機打散
+  words = words.slice(0, 20);
   fcSession = { words, idx:0, correct:0, wrong:0, flipped:false, mode };
   showFCScreen();
   loadFCCard();
